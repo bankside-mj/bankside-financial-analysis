@@ -230,8 +230,6 @@ if default_value:
     default_value = unquote(default_value)
 
 user_input = st.sidebar.text_input("Enter Yahoo Finance ticker, separate with comma", value=default_value)
-if user_input is not None and len(user_input) > 0:
-    get_result()
 
 if st.sidebar.button('Submit'):
     get_result()
