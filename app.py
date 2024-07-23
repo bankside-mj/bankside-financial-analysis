@@ -192,7 +192,7 @@ def get_result():
     # Option to download the table
     filename = f"financial_data__{fmt_dt.replace(' ', '_')}.xlsx"
 
-    excel = convert_df_to_excel(result_df)
+    excel = convert_df_to_excel(result_df.T)
     b64_excel = base64.b64encode(excel).decode()
     href_excel = f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64_excel}" download="{filename}">Download as Excel file</a>'
     st.markdown(href_excel, unsafe_allow_html=True)
