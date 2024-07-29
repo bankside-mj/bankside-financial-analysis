@@ -205,7 +205,7 @@ def get_result():
     # formatted_df['EPS Growth CAGR (4Y)'] = formatted_df['EPS Growth CAGR (4Y)'].apply(format_percentage)
 
     # Display the table
-    st.dataframe(formatted_df.T, height=1150)
+    st.dataframe(formatted_df.T, height=1180)
 
     # Option to download the table
     filename = f"financial_data__{fmt_dt.replace(' ', '_')}.xlsx"
