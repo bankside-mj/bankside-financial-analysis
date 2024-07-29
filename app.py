@@ -20,11 +20,23 @@ def get_financial_stats(ticker):
     stock = yf.Ticker(ticker)
 
     info = stock.info
+
     a_financials = stock.financials
     a_balance_sheet = stock.balance_sheet
 
     q_financials = stock.quarterly_financials
     q_balance_sheet = stock.quarterly_balance_sheet
+
+    dividend = stock.dividends.iloc[-1]
+
+    # st.write(info)
+    # st.write('Annual')
+    # st.write(a_financials.sort_index())
+    # st.write(a_balance_sheet.sort_index())
+
+    # st.write('Quarter')
+    # st.write(q_financials.sort_index())
+    # st.write(q_balance_sheet.sort_index())
 
     net_debt_to_equity = (
         (q_balance_sheet.loc['Total Debt'][0] - q_balance_sheet.loc['Cash Cash Equivalents And Short Term Investments'][0]) 
@@ -34,11 +46,9 @@ def get_financial_stats(ticker):
     roe_ttm = q_financials.loc['Net Income'][:4].sum() / q_balance_sheet.loc['Stockholders Equity'][0]
     roe_3y = a_financials.loc['Net Income'][2] / a_balance_sheet.loc['Stockholders Equity'][2]
 
-    # st.write(a_financials.sort_index())
-
     eps_growth_cagr_1y = (a_financials.loc['Basic EPS'][0] / a_financials.loc['Basic EPS'][1]) - 1.0
     eps_growth_cagr_3y = ((a_financials.loc['Basic EPS'][0] / a_financials.loc['Basic EPS'][2]) ** (1/3)) - 1.0
-    eps_growth_cagr_4y = ((a_financials.loc['Basic EPS'][0] / a_financials.loc['Basic EPS'][3]) ** (1/4)) - 1.0
+    # eps_growth_cagr_4y = ((a_financials.loc['Basic EPS'][0] / a_financials.loc['Basic EPS'][3]) ** (1/4)) - 1.0
 
     revenue_cagr_1y = (a_financials.loc['Total Revenue'][0] / a_financials.loc['Total Revenue'][1]) - 1.0
     revenue_cagr_3y = ((a_financials.loc['Total Revenue'][0] / a_financials.loc['Total Revenue'][2]) ** (1/3)) - 1.0
@@ -58,7 +68,10 @@ def get_financial_stats(ticker):
         # Financial Ratio
         '(B) Financial Ratio': None,
         'Trailing PE (TTM)': info.get('trailingPE'),
-        'PEG Ratio': info.get('pegRatio'),
+        'PEG Ratio (1Y)': info.get('trailingPE') / eps_growth_cagr_1y / 100,
+        'PEG Ratio (3Y)': info.get('trailingPE') / eps_growth_cagr_3y / 100,
+        # 'PEG Ratio (4Y)': info.get('trailingPE') / eps_growth_cagr_4y / 100,
+
         'Trailing EPS (TTM)': info.get('trailingEps'),
         'ROE (TTM)': roe_ttm,
         'ROE (3Y)': roe_3y,
@@ -67,9 +80,9 @@ def get_financial_stats(ticker):
         # Dividend
         '(C) Dividend': None,
         'Dividend Yield': info.get('dividendYield'),
-        'Last Dividend Date': info.get('lastDividendDate'),
-        'Last Dividend Value': info.get('lastDividendValue'),
-        'Payout Ratio': info.get('payoutRatio'),
+        'Last Ex-Dividend Date': info.get('exDividendDate'),
+        'Last Dividend Value': info.get('dividendRate'),
+        'Payout Ratio': dividend / a_financials.loc['Basic EPS'][0],
 
         # Profitability
         '(D) Profitability': None,
@@ -88,7 +101,7 @@ def get_financial_stats(ticker):
 
         'EPS Growth CAGR (1Y)': eps_growth_cagr_1y,
         'EPS Growth CAGR (3Y)': eps_growth_cagr_3y,
-        'EPS Growth CAGR (4Y)': eps_growth_cagr_4y,
+        # 'EPS Growth CAGR (4Y)': eps_growth_cagr_4y,
     }
 
     return data
@@ -149,23 +162,28 @@ def get_result():
 
     # Formatted
     result_df = pd.DataFrame(result).set_index('ID')
-    result_df['Last Dividend Date'] = result_df['Last Dividend Date'].apply(dt.datetime.fromtimestamp) + dt.timedelta(days=1)
-    result_df['Last Dividend Date'] = result_df['Last Dividend Date'].dt.strftime('%Y-%m-%d')
-    result_df['Last Dividend Date'] = pd.to_datetime(result_df['Last Dividend Date'])
+    result_df['Last Ex-Dividend Date'] = result_df['Last Ex-Dividend Date'].apply(dt.datetime.fromtimestamp) + dt.timedelta(days=1)
+    result_df['Last Ex-Dividend Date'] = result_df['Last Ex-Dividend Date'].dt.strftime('%Y-%m-%d')
+    result_df['Last Ex-Dividend Date'] = pd.to_datetime(result_df['Last Ex-Dividend Date'])
+
+    # result_df.fillna(-np.inf, inplace=True)
 
     formatted_df = result_df.copy()
     formatted_df['Current Price'] = formatted_df['Current Price'].apply(format_number)
     formatted_df['Mkt Cap'] = formatted_df['Mkt Cap'].apply(format_number)
 
     formatted_df['Trailing PE (TTM)'] = formatted_df['Trailing PE (TTM)'].apply(format_number)
-    formatted_df['PEG Ratio'] = formatted_df['PEG Ratio'].apply(format_number)
+    # formatted_df['PEG Ratio'] = formatted_df['PEG Ratio'].apply(format_number)
+    formatted_df['PEG Ratio (1Y)'] = formatted_df['PEG Ratio (1Y)'].apply(format_number)
+    formatted_df['PEG Ratio (3Y)'] = formatted_df['PEG Ratio (3Y)'].apply(format_number)
+    # formatted_df['PEG Ratio (4Y)'] = formatted_df['PEG Ratio (4Y)'].apply(format_number)
     formatted_df['Trailing EPS (TTM)'] = formatted_df['Trailing EPS (TTM)'].apply(format_number)
     formatted_df['ROE (TTM)'] = formatted_df['ROE (TTM)'].apply(format_percentage)
     formatted_df['ROE (3Y)'] = formatted_df['ROE (3Y)'].apply(format_percentage)
     formatted_df['Net Debt to Equity (Quarterly)'] = formatted_df['Net Debt to Equity (Quarterly)'].apply(format_percentage)
     
     formatted_df['Dividend Yield'] = formatted_df['Dividend Yield'].apply(format_percentage)
-    formatted_df['Last Dividend Date'] = formatted_df['Last Dividend Date'].dt.strftime('%Y-%m-%d')
+    formatted_df['Last Ex-Dividend Date'] = formatted_df['Last Ex-Dividend Date'].dt.strftime('%Y-%m-%d')
     formatted_df['Last Dividend Value'] = formatted_df['Last Dividend Value'].apply(format_number)
     formatted_df['Payout Ratio'] = formatted_df['Payout Ratio'].apply(format_number)
     
@@ -184,10 +202,10 @@ def get_result():
     
     formatted_df['EPS Growth CAGR (1Y)'] = formatted_df['EPS Growth CAGR (1Y)'].apply(format_percentage)
     formatted_df['EPS Growth CAGR (3Y)'] = formatted_df['EPS Growth CAGR (3Y)'].apply(format_percentage)
-    formatted_df['EPS Growth CAGR (4Y)'] = formatted_df['EPS Growth CAGR (4Y)'].apply(format_percentage)
+    # formatted_df['EPS Growth CAGR (4Y)'] = formatted_df['EPS Growth CAGR (4Y)'].apply(format_percentage)
 
     # Display the table
-    st.dataframe(formatted_df.T, height=1180)
+    st.dataframe(formatted_df.T, height=1150)
 
     # Option to download the table
     filename = f"financial_data__{fmt_dt.replace(' ', '_')}.xlsx"
