@@ -23,11 +23,18 @@ def get_financial_stats(ticker):
 
     a_financials = stock.financials
     a_balance_sheet = stock.balance_sheet
+    a_cash_flow = stock.cash_flow
 
     q_financials = stock.quarterly_financials
     q_balance_sheet = stock.quarterly_balance_sheet
 
-    dividend = stock.dividends.iloc[-1]
+    #TODO to check if stock dividends got anything
+    if not stock.dividends.empty:
+        dividend = stock.dividends.iloc[-1]
+        payout_ratio = dividend / a_financials.loc['Basic EPS'][0]
+    else:
+        dividend = np.nan
+        payout_ratio = np.nan
 
     # st.write(info)
     # st.write('Annual')
@@ -38,10 +45,26 @@ def get_financial_stats(ticker):
     # st.write(q_financials.sort_index())
     # st.write(q_balance_sheet.sort_index())
 
-    net_debt_to_equity = (
-        (q_balance_sheet.loc['Total Debt'][0] - q_balance_sheet.loc['Cash Cash Equivalents And Short Term Investments'][0]) 
-        / q_balance_sheet.loc['Stockholders Equity'][0]
-    )
+    if 'Cash Cash Equivalents And Short Term Investments' in q_balance_sheet.index:
+        net_debt_to_equity = (
+                    (q_balance_sheet.loc['Total Debt'][0] - q_balance_sheet.loc['Cash Cash Equivalents And Short Term Investments'][0]) 
+                    / q_balance_sheet.loc['Stockholders Equity'][0]
+                )
+    else:
+        net_debt_to_equity = np.nan
+
+    if 'Gross Profit' in q_financials.index:
+        gross_profit = q_financials.loc['Gross Profit'][0]
+        gross_margin = q_financials.loc['Gross Profit'][0] / q_financials.loc['Total Revenue'][0]
+        gross_margin_TTM = q_financials.loc['Gross Profit'][:4].sum() / q_financials.loc['Total Revenue'][:4].sum()
+        gross_margin_1y = a_financials.loc['Gross Profit'][0] / a_financials.loc['Total Revenue'][0]
+        gross_margin_3y =  a_financials.loc['Gross Profit'][2] / a_financials.loc['Total Revenue'][2]
+    else: 
+        gross_profit = np.nan
+        gross_margin = np.nan
+        gross_margin_TTM = np.nan
+        gross_margin_1y = np.nan
+        gross_margin_3y = np.nan
 
     roe_ttm = q_financials.loc['Net Income'][:4].sum() / q_balance_sheet.loc['Stockholders Equity'][0]
     roe_3y = a_financials.loc['Net Income'][2] / a_balance_sheet.loc['Stockholders Equity'][2]
@@ -53,6 +76,8 @@ def get_financial_stats(ticker):
     revenue_cagr_1y = (a_financials.loc['Total Revenue'][0] / a_financials.loc['Total Revenue'][1]) - 1.0
     revenue_cagr_3y = ((a_financials.loc['Total Revenue'][0] / a_financials.loc['Total Revenue'][2]) ** (1/3)) - 1.0
     revenue_cagr_4y = ((a_financials.loc['Total Revenue'][0] / a_financials.loc['Total Revenue'][3]) ** (1/4)) - 1.0
+
+    capex = a_cash_flow.loc['Capital Expenditure'][0]
 
     data = {
         'ID': info.get('shortName'),
@@ -82,22 +107,23 @@ def get_financial_stats(ticker):
         'Dividend Yield': info.get('dividendYield'),
         'Last Ex-Dividend Date': info.get('exDividendDate'),
         'Last Dividend Value': info.get('dividendRate'),
-        'Payout Ratio': dividend / a_financials.loc['Basic EPS'][0],
+        'Payout Ratio': payout_ratio,
 
         # Profitability
         '(D) Profitability': None,
         'Total Revenue (Quarterly)': q_financials.loc['Total Revenue'][0],
-        'Gross Profit (Quarterly)': q_financials.loc['Gross Profit'][0],
-        'Gross Margin (Quarterly)': q_financials.loc['Gross Profit'][0] / q_financials.loc['Total Revenue'][0],
+        'Gross Profit (Quarterly)': gross_profit,
+        'Gross Margin (Quarterly)': gross_margin,
         'Net Income (Quarterly)': q_financials.loc['Net Income'][0],
+        'Capital Expenditure': capex,
 
         'Revenue CAGR (1Y)': revenue_cagr_1y,
         'Revenue CAGR (3Y)': revenue_cagr_3y,
         'Revenue CAGR (4Y)': revenue_cagr_4y,
 
-        'Gross Margin (TTM)': q_financials.loc['Gross Profit'][:4].sum() / q_financials.loc['Total Revenue'][:4].sum(),
-        'Gross Margin (1Y)': a_financials.loc['Gross Profit'][0] / a_financials.loc['Total Revenue'][0],
-        'Gross Margin (3Y)': a_financials.loc['Gross Profit'][2] / a_financials.loc['Total Revenue'][2],
+        'Gross Margin (TTM)': gross_margin_TTM,
+        'Gross Margin (1Y)': gross_margin_1y,
+        'Gross Margin (3Y)': gross_margin_3y,
 
         'EPS Growth CAGR (1Y)': eps_growth_cagr_1y,
         'EPS Growth CAGR (3Y)': eps_growth_cagr_3y,
@@ -115,24 +141,23 @@ def convert_df_to_excel(df):
     return processed_data
 
 def format_number(n):
-    if np.isnan(n):
+    if pd.isna(n):
         return n
-
-    if abs(n) // 1e9 != 0:
+    
+    if np.abs(n) // 1e9 != 0:
         return f'{n / 1e9:,.1f}B'
 
-    elif abs(n) // 1e6 != 0:
+    elif np.abs(n) // 1e6 != 0:
         return f'{n / 1e6:,.1f}M'
     
-    elif abs(n) // 1e3 != 0:
+    elif np.abs(n) // 1e3 != 0:
         return f'{n / 1e3:,.1f}K'
     
     return f'{n:,.2f}'
 
 def format_percentage(n):
-    if np.isnan(n):
+    if pd.isna(n):
         return n
-
     return f'{n * 100:.1f}%'
 
 def get_query_parameter(param_name):
@@ -141,6 +166,11 @@ def get_query_parameter(param_name):
     
     query_params = st.query_params[param_name]
     return query_params
+
+def convert_timestamp(x):
+    if pd.notnull(x):  # Check if the value is not None/NaN
+        return dt.datetime.fromtimestamp(x) + dt.timedelta(days=1)
+    return None  # Return None if the value is None/NaN
 
 def get_result():
     ticker_ls = re.split(',|;', user_input)
@@ -160,9 +190,10 @@ def get_result():
         for k, v in stats.items():
             result[k].append(v)
 
-    # Formatted
+    # Formatted 
     result_df = pd.DataFrame(result).set_index('ID')
-    result_df['Last Ex-Dividend Date'] = result_df['Last Ex-Dividend Date'].apply(dt.datetime.fromtimestamp) + dt.timedelta(days=1)
+    result_df['Last Ex-Dividend Date'] = result_df['Last Ex-Dividend Date'].apply(convert_timestamp)
+    result_df['Last Ex-Dividend Date'] = pd.to_datetime(result_df['Last Ex-Dividend Date'], errors='coerce')
     result_df['Last Ex-Dividend Date'] = result_df['Last Ex-Dividend Date'].dt.strftime('%Y-%m-%d')
     result_df['Last Ex-Dividend Date'] = pd.to_datetime(result_df['Last Ex-Dividend Date'])
 
@@ -180,7 +211,8 @@ def get_result():
     formatted_df['Trailing EPS (TTM)'] = formatted_df['Trailing EPS (TTM)'].apply(format_number)
     formatted_df['ROE (TTM)'] = formatted_df['ROE (TTM)'].apply(format_percentage)
     formatted_df['ROE (3Y)'] = formatted_df['ROE (3Y)'].apply(format_percentage)
-    formatted_df['Net Debt to Equity (Quarterly)'] = formatted_df['Net Debt to Equity (Quarterly)'].apply(format_percentage)
+    #formatted_df['Net Debt to Equity (Quarterly)'] = formatted_df['Net Debt to Equity (Quarterly)'].apply(format_percentage)
+    formatted_df['Net Debt to Equity (Quarterly)'] = formatted_df['Net Debt to Equity (Quarterly)'].apply(format_number)
     
     formatted_df['Dividend Yield'] = formatted_df['Dividend Yield'].apply(format_percentage)
     formatted_df['Last Ex-Dividend Date'] = formatted_df['Last Ex-Dividend Date'].dt.strftime('%Y-%m-%d')
@@ -189,8 +221,9 @@ def get_result():
     
     formatted_df['Total Revenue (Quarterly)'] = formatted_df['Total Revenue (Quarterly)'].apply(format_number)
     formatted_df['Gross Profit (Quarterly)'] = formatted_df['Gross Profit (Quarterly)'].apply(format_number)
-    formatted_df['Gross Margin (Quarterly)'] = formatted_df['Gross Margin (Quarterly)'].apply(format_percentage)
+    formatted_df['Gross Margin (Quarterly)'] = formatted_df['Gross Margin (Quarterly)'].apply(format_number)
     formatted_df['Net Income (Quarterly)'] = formatted_df['Net Income (Quarterly)'].apply(format_number)
+    formatted_df['Capital Expenditure'] = formatted_df['Capital Expenditure'].apply(format_number)
 
     formatted_df['Revenue CAGR (1Y)'] = formatted_df['Revenue CAGR (1Y)'].apply(format_percentage)
     formatted_df['Revenue CAGR (3Y)'] = formatted_df['Revenue CAGR (3Y)'].apply(format_percentage)
