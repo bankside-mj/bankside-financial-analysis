@@ -21,11 +21,11 @@ def get_financial_stats(ticker):
 
     info = stock.info
 
-    a_financials = stock.financials
+    a_financials = stock.income_stmt
     a_balance_sheet = stock.balance_sheet
-    a_cash_flow = stock.cash_flow
+    a_cash_flow = stock.cashflow
 
-    q_financials = stock.quarterly_financials
+    q_financials = stock.quarterly_income_stmt
     q_balance_sheet = stock.quarterly_balance_sheet
 
     #TODO to check if stock dividends got anything
@@ -66,18 +66,62 @@ def get_financial_stats(ticker):
         gross_margin_1y = np.nan
         gross_margin_3y = np.nan
 
-    roe_ttm = q_financials.loc['Net Income'][:4].sum() / q_balance_sheet.loc['Stockholders Equity'][0]
-    roe_3y = a_financials.loc['Net Income'][2] / a_balance_sheet.loc['Stockholders Equity'][2]
+    if 'Net Income' in a_financials.index:
+        net_income = a_financials.loc['Net Income'][0]
+    else:
+        net_income = np.nan
 
-    eps_growth_cagr_1y = (a_financials.loc['Basic EPS'][0] / a_financials.loc['Basic EPS'][1]) - 1.0
-    eps_growth_cagr_3y = ((a_financials.loc['Basic EPS'][0] / a_financials.loc['Basic EPS'][2]) ** (1/3)) - 1.0
-    # eps_growth_cagr_4y = ((a_financials.loc['Basic EPS'][0] / a_financials.loc['Basic EPS'][3]) ** (1/4)) - 1.0
+    if 'Net Income' in q_financials.index:
+        net_income_quarterly = q_financials.loc['Net Income'][0]
+        roe_ttm = q_financials.loc['Net Income'][:4].sum() / q_balance_sheet.loc['Stockholders Equity'][0]
+        roe_3y = a_financials.loc['Net Income'][2] / a_balance_sheet.loc['Stockholders Equity'][2]
+    else:
+        net_income_quarterly = np.nan
+        roe_ttm = np.nan
+        roe_3y = np.nan
 
-    revenue_cagr_1y = (a_financials.loc['Total Revenue'][0] / a_financials.loc['Total Revenue'][1]) - 1.0
-    revenue_cagr_3y = ((a_financials.loc['Total Revenue'][0] / a_financials.loc['Total Revenue'][2]) ** (1/3)) - 1.0
-    revenue_cagr_4y = ((a_financials.loc['Total Revenue'][0] / a_financials.loc['Total Revenue'][3]) ** (1/4)) - 1.0
+    if 'Basic EPS' in a_financials.index:
+        eps_growth_cagr_1y = (a_financials.loc['Basic EPS'][0] / a_financials.loc['Basic EPS'][1]) - 1.0
+        eps_growth_cagr_3y = ((a_financials.loc['Basic EPS'][0] / a_financials.loc['Basic EPS'][2]) ** (1/3)) - 1.0
+        eps_growth_cagr_4y = ((a_financials.loc['Basic EPS'][0] / a_financials.loc['Basic EPS'][3]) ** (1/4)) - 1.0
+        # eps_growth_cagr_10y = ((a_financials.loc['Basic EPS'][0] / a_financials.loc['Basic EPS'][9]) ** (1/10)) - 1.0
+    else:
+        eps_growth_cagr_1y = np.nan
+        eps_growth_cagr_3y = np.nan
+        eps_growth_cagr_4y = np.nan
+        # eps_growth_cagr_10y = np.nan
 
-    capex = a_cash_flow.loc['Capital Expenditure'][0]
+    if 'Total Revenue' in q_financials.index:
+        total_revenue_quarterly = q_financials.loc['Total Revenue'][0]
+    else:
+        total_revenue_quarterly = np.nan
+    
+    if 'Total Revenue' in a_financials.index:
+        revenue_cagr_1y = (a_financials.loc['Total Revenue'][0] / a_financials.loc['Total Revenue'][1]) - 1.0
+        revenue_cagr_3y = ((a_financials.loc['Total Revenue'][0] / a_financials.loc['Total Revenue'][2]) ** (1/3)) - 1.0
+        revenue_cagr_4y = ((a_financials.loc['Total Revenue'][0] / a_financials.loc['Total Revenue'][3]) ** (1/4)) - 1.0
+        # revenue_cagr_10y = ((a_financials.loc['Total Revenue'][0] / a_financials.loc['Total Revenue'][9]) ** (1/10)) - 1.0
+    else:
+        revenue_cagr_1y = np.nan
+        revenue_cagr_3y = np.nan
+        revenue_cagr_4y = np.nan
+        # revenue_cagr_10y = np.nan # yfinance does not have 10-year data (at most 5)
+
+    if 'Capital Expenditure' in a_cash_flow.index:
+        capex = a_cash_flow.loc['Capital Expenditure'][0]
+    else:
+        capex = np.nan
+
+    if 'Receivables' in a_balance_sheet.index:
+        receivables = a_balance_sheet.loc['Receivables'][0]
+    else:
+        receivables = np.nan
+
+    if 'Inventory' in a_balance_sheet.index:
+        inventory = a_balance_sheet.loc['Inventory'][0]
+    else:
+        inventory = np.nan
+
 
     data = {
         'ID': info.get('shortName'),
@@ -90,44 +134,54 @@ def get_financial_stats(ticker):
         'Current Price': info.get('currentPrice'),
         'Mkt Cap': info.get('marketCap'),
 
-        # Financial Ratio
-        '(B) Financial Ratio': None,
+        # Investment Merits
+        '(B) Investment Merits': None,
+        'Mind Share': None,
+        'Market Share': None,
+        'CAPEX / Net Income': capex / net_income,
+        'Gross Margin (TTM)': gross_margin_TTM,
+        'Gross Margin (Quarterly)': gross_margin,
+        'Gross Margin (1Y)': gross_margin_1y,
+        'Gross Margin (3Y)': gross_margin_3y,
+        'EPS Growth CAGR (1Y)': eps_growth_cagr_1y,
+        'EPS Growth CAGR (3Y)': eps_growth_cagr_3y,
+        'EPS Growth CAGR (4Y)': eps_growth_cagr_4y,
+        'EPS Growth CAGR (5Y)': None,
+        'EPS Growth CAGR (10Y)': None,
+        'Revenue CAGR (1Y)': revenue_cagr_1y,
+        'Revenue CAGR (3Y)': revenue_cagr_3y,
+        'Revenue CAGR (4Y)': revenue_cagr_4y,
+        'Revenue CAGR (5Y)': None,
+        'Revenue CAGR (10Y)': None,
+        'ROE (TTM)': roe_ttm,
+        'ROE (3Y)': roe_3y,
+        
+        # Investment Risks
+        '(C) Investment Risks': None,
+        'Net Debt to Equity (Quarterly)': net_debt_to_equity,
+        'Receivable / Revenue': receivables / a_financials.loc['Total Revenue'][0],
+        'Inventory / Revenue': inventory / a_financials.loc['Total Revenue'][0],
+
+        # Valuation
+        '(D) Valuation': None,
         'Trailing PE (TTM)': info.get('trailingPE'),
         'PEG Ratio (1Y)': info.get('trailingPE') / eps_growth_cagr_1y / 100,
         'PEG Ratio (3Y)': info.get('trailingPE') / eps_growth_cagr_3y / 100,
+        'Dividend Yield': info.get('dividendYield'),
         # 'PEG Ratio (4Y)': info.get('trailingPE') / eps_growth_cagr_4y / 100,
 
+        # Financial Ratio
+        '(E) Financial Ratio': None,
+        'Total Revenue (Quarterly)': total_revenue_quarterly,
+        'Gross Profit (Quarterly)': gross_profit,
+        'Capital Expenditure': capex,
+        'Net Income (Last Year)': net_income,
+        'Net Income (Quarterly)': net_income_quarterly,
         'Trailing EPS (TTM)': info.get('trailingEps'),
-        'ROE (TTM)': roe_ttm,
-        'ROE (3Y)': roe_3y,
-        'Net Debt to Equity (Quarterly)': net_debt_to_equity,
-
-        # Dividend
-        '(C) Dividend': None,
-        'Dividend Yield': info.get('dividendYield'),
         'Last Ex-Dividend Date': info.get('exDividendDate'),
         'Last Dividend Value': info.get('dividendRate'),
         'Payout Ratio': payout_ratio,
 
-        # Profitability
-        '(D) Profitability': None,
-        'Total Revenue (Quarterly)': q_financials.loc['Total Revenue'][0],
-        'Gross Profit (Quarterly)': gross_profit,
-        'Gross Margin (Quarterly)': gross_margin,
-        'Net Income (Quarterly)': q_financials.loc['Net Income'][0],
-        'Capital Expenditure': capex,
-
-        'Revenue CAGR (1Y)': revenue_cagr_1y,
-        'Revenue CAGR (3Y)': revenue_cagr_3y,
-        'Revenue CAGR (4Y)': revenue_cagr_4y,
-
-        'Gross Margin (TTM)': gross_margin_TTM,
-        'Gross Margin (1Y)': gross_margin_1y,
-        'Gross Margin (3Y)': gross_margin_3y,
-
-        'EPS Growth CAGR (1Y)': eps_growth_cagr_1y,
-        'EPS Growth CAGR (3Y)': eps_growth_cagr_3y,
-        # 'EPS Growth CAGR (4Y)': eps_growth_cagr_4y,
     }
 
     return data
@@ -202,6 +256,7 @@ def get_result():
     formatted_df = result_df.copy()
     formatted_df['Current Price'] = formatted_df['Current Price'].apply(format_number)
     formatted_df['Mkt Cap'] = formatted_df['Mkt Cap'].apply(format_number)
+    formatted_df['CAPEX / Net Income'] = formatted_df['CAPEX / Net Income'].apply(format_number)
 
     formatted_df['Trailing PE (TTM)'] = formatted_df['Trailing PE (TTM)'].apply(format_number)
     # formatted_df['PEG Ratio'] = formatted_df['PEG Ratio'].apply(format_number)
@@ -213,6 +268,8 @@ def get_result():
     formatted_df['ROE (3Y)'] = formatted_df['ROE (3Y)'].apply(format_percentage)
     #formatted_df['Net Debt to Equity (Quarterly)'] = formatted_df['Net Debt to Equity (Quarterly)'].apply(format_percentage)
     formatted_df['Net Debt to Equity (Quarterly)'] = formatted_df['Net Debt to Equity (Quarterly)'].apply(format_number)
+    formatted_df['Receivable / Revenue'] = formatted_df['Receivable / Revenue'].apply(format_number)
+    formatted_df['Inventory / Revenue'] = formatted_df['Inventory / Revenue'].apply(format_number)
     
     formatted_df['Dividend Yield'] = formatted_df['Dividend Yield'].apply(format_percentage)
     formatted_df['Last Ex-Dividend Date'] = formatted_df['Last Ex-Dividend Date'].dt.strftime('%Y-%m-%d')
@@ -222,12 +279,14 @@ def get_result():
     formatted_df['Total Revenue (Quarterly)'] = formatted_df['Total Revenue (Quarterly)'].apply(format_number)
     formatted_df['Gross Profit (Quarterly)'] = formatted_df['Gross Profit (Quarterly)'].apply(format_number)
     formatted_df['Gross Margin (Quarterly)'] = formatted_df['Gross Margin (Quarterly)'].apply(format_number)
+    formatted_df['Net Income (Last Year)'] = formatted_df['Net Income (Last Year)'].apply(format_number)
     formatted_df['Net Income (Quarterly)'] = formatted_df['Net Income (Quarterly)'].apply(format_number)
     formatted_df['Capital Expenditure'] = formatted_df['Capital Expenditure'].apply(format_number)
 
     formatted_df['Revenue CAGR (1Y)'] = formatted_df['Revenue CAGR (1Y)'].apply(format_percentage)
     formatted_df['Revenue CAGR (3Y)'] = formatted_df['Revenue CAGR (3Y)'].apply(format_percentage)
     formatted_df['Revenue CAGR (4Y)'] = formatted_df['Revenue CAGR (4Y)'].apply(format_percentage)
+    #formatted_df['Revenue CAGR (10Y)'] = formatted_df['Revenue CAGR (10Y)'].apply(format_percentage)
 
     formatted_df['Gross Margin (TTM)'] = formatted_df['Gross Margin (TTM)'].apply(format_percentage)
     formatted_df['Gross Margin (1Y)'] = formatted_df['Gross Margin (1Y)'].apply(format_percentage)
@@ -235,7 +294,8 @@ def get_result():
     
     formatted_df['EPS Growth CAGR (1Y)'] = formatted_df['EPS Growth CAGR (1Y)'].apply(format_percentage)
     formatted_df['EPS Growth CAGR (3Y)'] = formatted_df['EPS Growth CAGR (3Y)'].apply(format_percentage)
-    # formatted_df['EPS Growth CAGR (4Y)'] = formatted_df['EPS Growth CAGR (4Y)'].apply(format_percentage)
+    formatted_df['EPS Growth CAGR (4Y)'] = formatted_df['EPS Growth CAGR (4Y)'].apply(format_percentage)
+    #formatted_df['EPS Growth CAGR (10Y)'] = formatted_df['EPS Growth CAGR (10Y)'].apply(format_percentage)
 
     # Display the table
     st.dataframe(formatted_df.T, height=1180)
