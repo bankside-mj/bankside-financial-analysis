@@ -40,6 +40,27 @@ class FinancialAnalysis:
         self.data_fin = defaultdict(list)
         self.data_raw_financials = defaultdict(dict)
 
+        self.pct_col_ls = [
+            'Gross Margin (Last Quarter)', 'Gross Margin (TTM)', 'Gross Margin (FY -1)', 
+            'Gross Margin (FY -3)', 'Gross Margin (FY -5)', 'Gross Margin (FY -10)',
+            'EPS CAGR (TTM)', 'EPS CAGR (1Y)', 'EPS CAGR (3Y)', 'EPS CAGR (5Y)', 'EPS CAGR (10Y)',
+            'Revenue CAGR (1Y)', 'Revenue CAGR (3Y)', 'Revenue CAGR (5Y)', 'Revenue CAGR (10Y)',
+            'ROE (TTM)', 'ROE (FY -1)', 'ROE (FY -3)', 'ROE (FY -5)', 'ROE (FY -10)',
+            'Dividend Yield', 'CAPEX / Net Income',
+        ]
+        self.num_col_ls = [
+            'Current Price', 'Beta', 'Net Debt to Equity (Last Quarter)', 
+            'Receivable / Revenue (Last FY)', 'Inventory / Revenue (Last FY)',
+            'Trailing PE (TTM)', 'PEG Ratio (TTM)', 'PEG Ratio (FY -1)', 'PEG Ratio (FY -3)',
+            'Total Revenue (Last Quarter)', 'Gross Profit (Last Quarter)',
+            'Capital Expenditure (Last Year)', 'Net Income (Last Quarter)',
+            'Net Income (Last Year)', 'Net Income (TTM)', 'EPS (TTM)', 'Last Dividend Value',
+            'Payout Ratio (TTM)'
+        ]
+        self.txt_col_ls = [
+            'Market Cap',
+        ]
+
     def _get_query_parameter(self, param_name):
         if param_name not in st.query_params.keys():
             return None
@@ -83,16 +104,16 @@ class FinancialAnalysis:
                         cur_ticker = result.get('symbol')
                         reported_ccy = self._get_latest_value(cur_ticker, ANN_INCOME, 'reportedCurrency', idx=0)
 
-                        self.data_basic_info['Ticker'].append(cur_ticker)
                         self.data_basic_info['Company Name'].append(result.get('companyName'))
+                        self.data_basic_info['Ticker'].append(cur_ticker)
                         self.data_basic_info['Sector'].append(result.get('sector'))
-                        self.data_basic_info['Industry'].append(result.get('industry'))
+                        # self.data_basic_info['Industry'].append(result.get('industry'))
                         self.data_basic_info['Currency'].append(result.get('currency'))
                         self.data_basic_info['Current Price'].append(result.get('price'))
                         self.data_basic_info['Market Cap'].append(result.get('mktCap'))
                         self.data_basic_info['Beta'].append(result.get('beta'))
-                        self.data_basic_info['Exchange'].append(result.get('exchange'))
-                        self.data_basic_info['Reported Currency'].append(reported_ccy)
+                        # self.data_basic_info['Exchange'].append(result.get('exchange'))
+                        # self.data_basic_info['Reported Currency'].append(reported_ccy)
 
                         ticker_ls.remove(cur_ticker)
 
@@ -235,8 +256,21 @@ class FinancialAnalysis:
         eps_cagr_3y = self._calc_cagr(eps_prev_1y, eps_prev_3y, 3)
         eps_cagr_5y = self._calc_cagr(eps_prev_1y, eps_prev_5y, 5)
         eps_cagr_10y = self._calc_cagr(eps_prev_1y, eps_prev_10y, 10)
+        
+        # EPS TTM
+        eps_prev_1q = self._get_latest_value(ticker, QUAR_INCOME, 'eps', idx=0)
+        eps_prev_2q = self._get_latest_value(ticker, QUAR_INCOME, 'eps', idx=1)
+        eps_prev_3q = self._get_latest_value(ticker, QUAR_INCOME, 'eps', idx=2)
+        eps_prev_4q = self._get_latest_value(ticker, QUAR_INCOME, 'eps', idx=3)
+        eps_prev_5q = self._get_latest_value(ticker, QUAR_INCOME, 'eps', idx=4)
+        eps_prev_6q = self._get_latest_value(ticker, QUAR_INCOME, 'eps', idx=5)
+        eps_prev_7q = self._get_latest_value(ticker, QUAR_INCOME, 'eps', idx=6)
+        eps_prev_8q = self._get_latest_value(ticker, QUAR_INCOME, 'eps', idx=7)
+        eps_ttm = self._safe_div(eps_prev_1q + eps_prev_2q + eps_prev_3q + eps_prev_4q,
+                                 eps_prev_5q + eps_prev_6q + eps_prev_7q + eps_prev_8q)
 
         metrics = {
+            'EPS CAGR (TTM)': eps_ttm,
             'EPS CAGR (1Y)': eps_cagr_1y,
             'EPS CAGR (3Y)': eps_cagr_3y,
             'EPS CAGR (5Y)': eps_cagr_5y,
@@ -353,17 +387,17 @@ class FinancialAnalysis:
             for ticker in self.ticker_ls:
                 net_debt_prev_q = self._get_latest_value(ticker, QUAR_BALANCE, 'netDebt', idx=0)
                 tot_equity_prev_q = self._get_latest_value(ticker, ANN_BALANCE, 'totalEquity', idx=0)
-                # rec_prev_fy = self._get_latest_value(ticker, ANN_CF, 'accountsReceivables', idx=0)
+                rec_prev_fy = self._get_latest_value(ticker, ANN_CF, 'accountsReceivables', idx=0)
                 inv_prev_fy = self._get_latest_value(ticker, ANN_CF, 'inventory', idx=0)
                 rev_prev_fy = self._get_latest_value(ticker, ANN_INCOME, 'revenue', idx=0)
 
                 net_debt_to_equity = self._safe_div(net_debt_prev_q, tot_equity_prev_q)
-                # receivable_turnover = self._safe_div(rec_prev_fy, rev_prev_fy)
+                receivable_turnover = self._safe_div(rec_prev_fy, rev_prev_fy)
                 inventory_turnover = self._safe_div(inv_prev_fy, rev_prev_fy)
 
                 metrics = {
                     'Net Debt to Equity (Last Quarter)': net_debt_to_equity,
-                    # 'Receivable / Revenue (Last FY)': receivable_turnover,
+                    'Receivable / Revenue (Last FY)': receivable_turnover,
                     'Inventory / Revenue (Last FY)': inventory_turnover,
                 }
 
@@ -382,12 +416,14 @@ class FinancialAnalysis:
                 pe_ttm = self._get_latest_value(ticker, RATIO_TTM, 'peRatioTTM', idx=0)
                 peg_ttm = self._get_latest_value(ticker, RATIO_TTM, 'pegRatioTTM', idx=0)
                 peg_1y = self._safe_div(pe_ttm, self.data_invest_metrics['EPS CAGR (1Y)'][idx])
+                peg_3y = self._safe_div(pe_ttm, self.data_invest_metrics['EPS CAGR (3Y)'][idx])
 
                 metrics = {
                     'Dividend Yield': div_yield_ttm,
                     'Trailing PE (TTM)': pe_ttm,
-                    'PEG (TTM)': peg_ttm,
+                    'PEG Ratio (TTM)': peg_ttm,
                     'PEG Ratio (FY -1)': peg_1y,
+                    'PEG Ratio (FY -3)': peg_3y,
                 }
 
                 for k, v in metrics.items():
@@ -403,7 +439,11 @@ class FinancialAnalysis:
                 capex_prev_yr = self._get_latest_value(ticker, ANN_CF, 'capitalExpenditure', idx=0)
 
                 ni_prev_q = self._get_latest_value(ticker, QUAR_INCOME, 'netIncome', idx=0)
+                ni_prev_2q = self._get_latest_value(ticker, QUAR_INCOME, 'netIncome', idx=1)
+                ni_prev_3q = self._get_latest_value(ticker, QUAR_INCOME, 'netIncome', idx=2)
+                ni_prev_4q = self._get_latest_value(ticker, QUAR_INCOME, 'netIncome', idx=3)
                 ni_prev_yr = self._get_latest_value(ticker, ANN_INCOME, 'netIncome', idx=0)
+                ni_ttm = ni_prev_q + ni_prev_2q + ni_prev_3q + ni_prev_4q
 
                 payout_r_ttm = self._get_latest_value(ticker, RATIO_TTM, 'payoutRatioTTM', idx=0)
 
@@ -423,6 +463,7 @@ class FinancialAnalysis:
                     'Capital Expenditure (Last Year)': capex_prev_yr,
                     'Net Income (Last Quarter)': ni_prev_q,
                     'Net Income (Last Year)': ni_prev_yr,
+                    'Net Income (TTM)': ni_ttm,
 
                     'EPS (TTM)': eps_ttm,
                     'Last Ex-Dividend Date': ex_div_dt,
@@ -437,30 +478,9 @@ class FinancialAnalysis:
             time.sleep(1.5)
 
     def _format_column(self, df: pd.DataFrame):
-        pct_col_ls = [
-            'Gross Margin (Last Quarter)', 'Gross Margin (TTM)', 'Gross Margin (FY -1)', 
-            'Gross Margin (FY -3)', 'Gross Margin (FY -5)', 'Gross Margin (FY -10)',
-            'EPS CAGR (1Y)', 'EPS CAGR (3Y)', 'EPS CAGR (5Y)', 'EPS CAGR (10Y)',
-            'Revenue CAGR (1Y)', 'Revenue CAGR (3Y)', 'Revenue CAGR (5Y)', 'Revenue CAGR (10Y)',
-            'ROE (TTM)', 'ROE (FY -1)', 'ROE (FY -3)', 'ROE (FY -5)', 'ROE (FY -10)',
-            'Dividend Yield',
-        ]
-        num_col_ls = [
-            'Current Price', 'Market Cap', 'Beta',
-            'CAPEX / Net Income', 'Net Debt to Equity (Last Quarter)', 
-            'Receivable / Revenue (Last FY)', 'Inventory / Revenue (Last FY)',
-            'Trailing PE (TTM)', 'PEG (TTM)', 'PEG Ratio (FY -1)',
-            'Total Revenue (Last Quarter)', 'Gross Profit (Last Quarter)',
-            'Capital Expenditure (Last Year)', 'Net Income (Last Quarter)',
-            'Net Income (Last Year)', 'EPS (TTM)', 'Last Dividend Value',
-            'Payout Ratio (TTM)'
-        ]
-
         copy_df = df.copy()
         for col in copy_df.columns.tolist():
-            if col in pct_col_ls:
-                copy_df[col] = copy_df[col].apply(Formatter.format_percentage)
-            elif col in num_col_ls:
+            if col in self.txt_col_ls:
                 copy_df[col] = copy_df[col].apply(Formatter.format_number)
 
         return copy_df
@@ -486,20 +506,45 @@ class FinancialAnalysis:
             fin_header, fin_df,
         ], axis=1)
 
+        reorder_columns = [
+            # (A) Basic Info
+            'Company Name', 'Ticker', 'Sector', 'Currency', 'Current Price', 'Market Cap', 'Beta',
+
+            # (B) Investment Metrics
+            'Mind Share', 'Market Share', 'Dividend Yield', 'CAPEX / Net Income', 'EPS CAGR (5Y)', 'EPS CAGR (10Y)', 
+            'Gross Margin (TTM)', 'EPS CAGR (TTM)', 'EPS CAGR (1Y)', 'EPS CAGR (3Y)',
+            'Revenue CAGR (1Y)', 'Revenue CAGR (3Y)', 'Revenue CAGR (5Y)', 'Revenue CAGR (10Y)',
+            'Gross Margin (Last Quarter)', 'Gross Margin (FY -1)', 'Gross Margin (FY -3)',
+            'ROE (TTM)', 'ROE (FY -3)',
+
+            # (C) Investment Metrics
+            'Net Debt to Equity (Last Quarter)', 'Receivable / Revenue (Last FY)', 'Inventory / Revenue (Last FY)',
+
+            # (D) Valuation
+            'Trailing PE (TTM)', 'PEG Ratio (TTM)', 'PEG Ratio (FY -1)', 'PEG Ratio (FY -3)',
+
+            # (E) Financial Ratio
+            'Total Revenue (Last Quarter)', 'Gross Profit (Last Quarter)',
+            'Capital Expenditure (Last Year)', 'Net Income (TTM)', 'Net Income (Last Year)', 'Net Income (Last Quarter)',
+            'EPS (TTM)', 'Last Ex-Dividend Date', 'Last Dividend Value', 'Payout Ratio (TTM)',
+        ]
+        raw_data_df = raw_data_df[reorder_columns]
+
         st.dataframe(raw_data_df)
 
         # Option to download the table
         fmt_dt = dt.datetime.now().strftime('%Y-%m-%d ')
 
         raw_filename = f"financial_data_raw__{fmt_dt.replace(' ', '_')}.xlsx"
-        raw_excel = Writer.convert_df_to_excel(raw_data_df.T)
+        raw_excel = Writer.convert_df_to_excel(raw_data_df)
         raw_b64_excel = base64.b64encode(raw_excel).decode()
         href_excel = f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{raw_b64_excel}" download="{raw_filename}">Download as Raw Excel file</a>'
         st.markdown(href_excel, unsafe_allow_html=True)
 
         fmt_data_df = self._format_column(raw_data_df)
         filename = f"financial_data_formatted__{fmt_dt.replace(' ', '_')}.xlsx"
-        excel = Writer.convert_df_to_excel(fmt_data_df.T)
+
+        excel = Writer.convert_df_to_excel(fmt_data_df, percentage_columns=self.pct_col_ls)
         b64_excel = base64.b64encode(excel).decode()
         href_excel = f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64_excel}" download="{filename}">Download as Formatted Excel file</a>'
         st.markdown(href_excel, unsafe_allow_html=True)
