@@ -23,7 +23,7 @@ class Writer:
         
         # Define formats
         percent_format = workbook.add_format({'num_format': '0.0%'})  # One decimal places in percentage
-        decimal_format = workbook.add_format({'num_format': '0.0'})   # One decimal places for numbers
+        decimal_format = workbook.add_format({'num_format': '#,##0.00'})   # One decimal places for numbers
 
         # Apply percentage format to specified columns
         if percentage_columns:

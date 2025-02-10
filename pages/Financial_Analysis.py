@@ -52,13 +52,13 @@ class FinancialAnalysis:
             'Current Price', 'Beta', 'Net Debt to Equity (Last Quarter)', 
             'Receivable / Revenue (Last FY)', 'Inventory / Revenue (Last FY)',
             'Trailing PE (TTM)', 'PEG Ratio (TTM)', 'PEG Ratio (FY -1)', 'PEG Ratio (FY -3)',
-            'Total Revenue (Last Quarter)', 'Gross Profit (Last Quarter)',
-            'Capital Expenditure (Last Year)', 'Net Income (Last Quarter)',
-            'Net Income (Last Year)', 'Net Income (TTM)', 'EPS (TTM)', 'Last Dividend Value',
+             'EPS (TTM)', 'Last Dividend Value',
             'Payout Ratio (TTM)'
         ]
         self.txt_col_ls = [
-            'Market Cap',
+            'Market Cap', 'Total Revenue (Last Quarter)', 'Gross Profit (Last Quarter)',
+            'Capital Expenditure (Last Year)', 'Net Income (Last Quarter)',
+            'Net Income (Last Year)', 'Net Income (TTM)',
         ]
 
     def _get_query_parameter(self, param_name):
@@ -544,7 +544,7 @@ class FinancialAnalysis:
         fmt_data_df = self._format_column(raw_data_df)
         filename = f"financial_data_formatted__{fmt_dt.replace(' ', '_')}.xlsx"
 
-        excel = Writer.convert_df_to_excel(fmt_data_df, percentage_columns=self.pct_col_ls)
+        excel = Writer.convert_df_to_excel(fmt_data_df, percentage_columns=self.pct_col_ls, decimal_columns=self.num_col_ls)
         b64_excel = base64.b64encode(excel).decode()
         href_excel = f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64_excel}" download="{filename}">Download as Formatted Excel file</a>'
         st.markdown(href_excel, unsafe_allow_html=True)
