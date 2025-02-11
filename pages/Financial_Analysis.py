@@ -28,6 +28,7 @@ QUAR_CF = 'quar_cf'
 RATIO = 'ratio'
 RATIO_TTM = 'ratio_ttm'
 DIV_CAL = 'div_cal'
+EARNINGS_CAL = 'earnings_cal'
 
 class FinancialAnalysis:
     
@@ -49,18 +50,18 @@ class FinancialAnalysis:
             'EPS CAGR (TTM)', 'EPS CAGR (1Y)', 'EPS CAGR (3Y)', 'EPS CAGR (5Y)', 'EPS CAGR (10Y)',
             'Revenue CAGR (1Y)', 'Revenue CAGR (3Y)', 'Revenue CAGR (5Y)', 'Revenue CAGR (10Y)',
             'ROE (TTM)', 'ROE (FY -1)', 'ROE (FY -3)', 'ROE (FY -5)', 'ROE (FY -10)',
-            'Dividend Yield (TTM)', 'CAPEX / Net Income', 'Payout Ratio (TTM)',
+            'Dividend Yield (TTM)', 'CAPEX / Net Income (TTM)', 'Payout Ratio (TTM)', 
+            'Net Debt to Equity (Last Quarter)', 'Receivable / Revenue (Last FY)', 'Inventory / Revenue (Last FY)',
         ]
         self.num_col_ls = [
-            'Current Price', 'Beta', 'Net Debt to Equity (Last Quarter)', 
-            'Receivable / Revenue (Last FY)', 'Inventory / Revenue (Last FY)',
+            'Current Price', 'Beta',  
             'Trailing PE (TTM)', 'PEG Ratio (TTM)', 'PEG Ratio (FY -1)', 'PEG Ratio (FY -3)',
-            'EPS (TTM)', 'Last Dividend Value',
+            'EPS (TTM)', 'Last Dividend Value', 'Next Earnings Estimate EPS',
         ]
         self.txt_col_ls = [
             'Market Cap', 'Total Revenue (Last Quarter)', 'Gross Profit (Last Quarter)',
             'Capital Expenditure (Last Year)', 'Net Income (Last Quarter)',
-            'Net Income (Last Year)', 'Net Income (TTM)',
+            'Net Income (Last Year)', 'Net Income (TTM)', 'Next Earnings Estimate Revenue',
         ]
 
     def _get_query_parameter(self, param_name):
@@ -136,6 +137,7 @@ class FinancialAnalysis:
             (RATIO, f"https://financialmodelingprep.com/api/v3/ratios/{ticker}?period=annual&apikey={api_key}"),
             (RATIO_TTM, f"https://financialmodelingprep.com/api/v3/ratios-ttm/{ticker}?apikey={api_key}"),
             (DIV_CAL, f"https://financialmodelingprep.com/api/v3/historical-price-full/stock_dividend/{ticker}?apikey={api_key}"),
+            (EARNINGS_CAL, f"https://financialmodelingprep.com/stable/earnings?symbol={ticker}&apikey={api_key}")
         ]
 
         for key, url in endpoints:
@@ -172,7 +174,13 @@ class FinancialAnalysis:
                 return None
 
             val = self.data_raw_financials[ticker][fin_key]['historical'][idx].get(metrics, default_value)
-        
+
+        elif fin_key == EARNINGS_CAL:
+            for cal in self.data_raw_financials[ticker][fin_key]:
+                if cal['revenueEstimated'] is not None:
+                    val = cal[metrics]
+                    break
+
         else:
             val = self.data_raw_financials[ticker][fin_key][idx].get(metrics, default_value)
 
@@ -346,8 +354,18 @@ class FinancialAnalysis:
     def _get_investment_metrics(self):
         with st.spinner('Calculating (2/5) - Investment Metrics'):
             for ticker in self.ticker_ls:
-                capex = self._get_latest_value(ticker, ANN_CF, 'capitalExpenditure')
-                net_income = self._get_latest_value(ticker, ANN_INCOME, 'netIncome', default_value=None)
+                capex_prev_1q = self._get_latest_value(ticker, QUAR_CF, 'capitalExpenditure', idx=0)
+                capex_prev_2q = self._get_latest_value(ticker, QUAR_CF, 'capitalExpenditure', idx=1)
+                capex_prev_3q = self._get_latest_value(ticker, QUAR_CF, 'capitalExpenditure', idx=2)
+                capex_prev_4q = self._get_latest_value(ticker, QUAR_CF, 'capitalExpenditure', idx=3)
+
+                ni_prev_1q = self._get_latest_value(ticker, QUAR_INCOME, 'netIncome', idx=0)
+                ni_prev_2q = self._get_latest_value(ticker, QUAR_INCOME, 'netIncome', idx=1)
+                ni_prev_3q = self._get_latest_value(ticker, QUAR_INCOME, 'netIncome', idx=2)
+                ni_prev_4q = self._get_latest_value(ticker, QUAR_INCOME, 'netIncome', idx=3)
+
+                capex_ni_ttm = self._safe_div(capex_prev_1q + capex_prev_2q + capex_prev_3q + capex_prev_4q,
+                                              ni_prev_1q + ni_prev_2q + ni_prev_3q + ni_prev_4q)
 
                 gm_metrics = self._calc_gross_margin_sec(ticker)
                 eps_metrics = self._calc_eps_sec(ticker)
@@ -357,7 +375,7 @@ class FinancialAnalysis:
                 metrics = {
                     'Mind Share': None,
                     'Market Share': None,
-                    'CAPEX / Net Income': self._safe_div(capex, net_income),
+                    'CAPEX / Net Income (TTM)': capex_ni_ttm,
 
                     **gm_metrics,
                     **eps_metrics,
@@ -408,7 +426,7 @@ class FinancialAnalysis:
         '''
         with st.spinner('Calculating (4/5) - Valuation'):
             for idx, ticker in enumerate(self.ticker_ls):
-                div_yield_ttm = self._get_latest_value(ticker, RATIO_TTM, 'dividendYieldTTM', idx=0)
+                div_yield_ttm = self._get_latest_value(ticker, RATIO_TTM, 'dividendYielTTM', idx=0)
                 pe_ttm = self._get_latest_value(ticker, RATIO_TTM, 'peRatioTTM', idx=0)
                 peg_ttm = self._get_latest_value(ticker, RATIO_TTM, 'pegRatioTTM', idx=0)
                 peg_1y = self._safe_div(pe_ttm, self.data_invest_metrics['EPS CAGR (1Y)'][idx])
@@ -453,6 +471,11 @@ class FinancialAnalysis:
                 eps_prev_4q = self._get_latest_value(ticker, QUAR_INCOME, 'eps', idx=3)
                 eps_ttm = eps_prev_1q + eps_prev_2q + eps_prev_3q + eps_prev_4q
 
+                # Earnings Date
+                next_earnings_date = self._get_latest_value(ticker, EARNINGS_CAL, 'date')
+                next_earnings_estimate_eps = self._get_latest_value(ticker, EARNINGS_CAL, 'epsEstimated')
+                next_earnings_estimate_revenue = self._get_latest_value(ticker, EARNINGS_CAL, 'revenueEstimated')
+
                 metrics = {
                     'Total Revenue (Last Quarter)': tot_rev_prev_q,
                     'Gross Profit (Last Quarter)': gross_profit_prev_q,
@@ -466,6 +489,9 @@ class FinancialAnalysis:
                     'Last Dividend Value': div,
 
                     'Payout Ratio (TTM)': payout_r,
+                    'Next Earnings Date': next_earnings_date,
+                    'Next Earnings Estimate EPS': next_earnings_estimate_eps,
+                    'Next Earnings Estimate Revenue': next_earnings_estimate_revenue,
                 }
 
                 for k, v in metrics.items():
@@ -507,22 +533,26 @@ class FinancialAnalysis:
             'Company Name', 'Ticker', 'Sector', 'Currency', 'Current Price', 'Market Cap', 'Beta',
 
             # (B) Investment Metrics
-            'Mind Share', 'Market Share', 'Dividend Yield (TTM)', 'CAPEX / Net Income', 'EPS CAGR (5Y)', 'EPS CAGR (10Y)', 
-            'Gross Margin (TTM)', 'EPS CAGR (TTM)', 'EPS CAGR (1Y)', 'EPS CAGR (3Y)',
+            'Mind Share', 'Market Share', 'Dividend Yield (TTM)', 'CAPEX / Net Income (TTM)', 
+            'EPS CAGR (TTM)', 'EPS CAGR (5Y)', 'EPS CAGR (10Y)', 
+            'Gross Margin (TTM)', 'Trailing PE (TTM)', 'PEG Ratio (TTM)',
+            
+            'EPS CAGR (1Y)', 'EPS CAGR (3Y)', 'Net Debt to Equity (Last Quarter)',
             'Revenue CAGR (1Y)', 'Revenue CAGR (3Y)', 'Revenue CAGR (5Y)', 'Revenue CAGR (10Y)',
             'Gross Margin (Last Quarter)', 'Gross Margin (FY -1)', 'Gross Margin (FY -3)',
             'ROE (TTM)', 'ROE (FY -3)',
 
             # (C) Investment Metrics
-            'Net Debt to Equity (Last Quarter)', 'Receivable / Revenue (Last FY)', 'Inventory / Revenue (Last FY)',
+            'Receivable / Revenue (Last FY)', 'Inventory / Revenue (Last FY)',
 
             # (D) Valuation
-            'Trailing PE (TTM)', 'PEG Ratio (TTM)', 'PEG Ratio (FY -1)', 'PEG Ratio (FY -3)',
+            'PEG Ratio (FY -1)', 'PEG Ratio (FY -3)',
 
             # (E) Financial Ratio
             'Total Revenue (Last Quarter)', 'Gross Profit (Last Quarter)',
             'Capital Expenditure (Last Year)', 'Net Income (TTM)', 'Net Income (Last Year)', 'Net Income (Last Quarter)',
             'EPS (TTM)', 'Last Ex-Dividend Date', 'Last Dividend Value', 'Payout Ratio (TTM)',
+            'Next Earnings Date', 'Next Earnings Estimate EPS', 'Next Earnings Estimate Revenue',
         ]
         raw_data_df = raw_data_df[reorder_columns]
 
