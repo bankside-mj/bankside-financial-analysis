@@ -27,7 +27,8 @@ ANN_BALANCE = 'ann_balance'
 QUAR_BALANCE = 'quar_balance'
 ANN_CF = 'ann_cf'
 QUAR_CF = 'quar_cf'
-RATIO = 'ratio'
+ANN_RATIO = 'ann_ratio'
+QUAR_RATIO = 'quarratio'
 RATIO_TTM = 'ratio_ttm'
 DIV_CAL = 'div_cal'
 EARNINGS_CAL = 'earnings_cal'
@@ -52,8 +53,10 @@ class FinancialAnalysis:
             'EPS CAGR (TTM)', 'EPS CAGR (1Y)', 'EPS CAGR (3Y)', 'EPS CAGR (5Y)', 'EPS CAGR (10Y)',
             'Revenue CAGR (1Y)', 'Revenue CAGR (3Y)', 'Revenue CAGR (5Y)', 'Revenue CAGR (10Y)',
             'ROE (TTM)', 'ROE (FY -1)', 'ROE (FY -3)', 'ROE (FY -5)', 'ROE (FY -10)',
-            'Dividend Yield (TTM)', 'CAPEX / Net Income (TTM)', 'Payout Ratio (TTM)', 
+            'Dividend Yield (TTM)', 'Payout Ratio (TTM)', 
+            'CAPEX / Net Income (TTM)', 'CAPEX / Net Income (5Y AVG)', 'CAPEX / Net Income (10Y AVG)',
             'Net Debt to Equity (Last Quarter)', 'Receivable / Revenue (Last FY)', 'Inventory / Revenue (Last FY)',
+            'Beat Estimate', 'ROIC',
         ]
         self.num_col_ls = [
             'Current Price', 'Beta',  
@@ -125,20 +128,21 @@ class FinancialAnalysis:
                 st.warning(f'The following ticker are not found: {not_found_ticker_ls}')
                 self.ticker_ls = list(filter(lambda x: x not in not_found_ticker_ls, self.ticker_ls))
 
-    def _fetch_multi_financials(self, ticker, limit=10):
+    def _fetch_multi_financials(self, ticker, limit=15):
         result = defaultdict(dict)
         
         api_key = os.getenv('FMP_KEY')
         endpoints = [
-            (ANN_INCOME, f"https://financialmodelingprep.com/api/v3/income-statement/{ticker}?period=annual&limit={limit}&apikey={api_key}"),
-            (QUAR_INCOME, f"https://financialmodelingprep.com/api/v3/income-statement/{ticker}?period=quarterly&limit={limit}&apikey={api_key}"),
-            (ANN_BALANCE, f"https://financialmodelingprep.com/api/v3/balance-sheet-statement/{ticker}?period=annual&limit={limit}&apikey={api_key}"),
-            (QUAR_BALANCE, f"https://financialmodelingprep.com/api/v3/balance-sheet-statement/{ticker}?period=quarterly&limit={limit}&apikey={api_key}"),
-            (ANN_CF, f"https://financialmodelingprep.com/api/v3/cash-flow-statement/{ticker}?period=annual&limit={limit}&apikey={api_key}"),
-            (QUAR_CF, f"https://financialmodelingprep.com/api/v3/cash-flow-statement/{ticker}?period=quarterly&limit={limit}&apikey={api_key}"),
-            (RATIO, f"https://financialmodelingprep.com/api/v3/ratios/{ticker}?period=annual&apikey={api_key}"),
-            (RATIO_TTM, f"https://financialmodelingprep.com/api/v3/ratios-ttm/{ticker}?apikey={api_key}"),
-            (DIV_CAL, f"https://financialmodelingprep.com/api/v3/historical-price-full/stock_dividend/{ticker}?apikey={api_key}"),
+            (ANN_INCOME, f"https://financialmodelingprep.com/stable/income-statement?symbol={ticker}&period=annual&limit={limit}&apikey={api_key}"),
+            (QUAR_INCOME, f"https://financialmodelingprep.com/stable/income-statement?symbol={ticker}&period=quarterly&limit={limit}&apikey={api_key}"),
+            (ANN_BALANCE, f"https://financialmodelingprep.com/stable/balance-sheet-statement?symbol={ticker}&period=annual&limit={limit}&apikey={api_key}"),
+            (QUAR_BALANCE, f"https://financialmodelingprep.com/stable/balance-sheet-statement?symbol={ticker}&period=quarterly&limit={limit}&apikey={api_key}"),
+            (ANN_CF, f"https://financialmodelingprep.com/stable/cash-flow-statement?symbol={ticker}&period=annual&limit={limit}&apikey={api_key}"),
+            (QUAR_CF, f"https://financialmodelingprep.com/stable/cash-flow-statement?symbol={ticker}&period=quarterly&limit={limit}&apikey={api_key}"),
+            (ANN_RATIO, f"https://financialmodelingprep.com/stable/ratios?symbol={ticker}&period=annual&apikey={api_key}"),
+            (QUAR_RATIO, f"https://financialmodelingprep.com/stable/ratios?symbol={ticker}&period=quarterly&apikey={api_key}"),
+            (RATIO_TTM, f"https://financialmodelingprep.com/stable/ratios-ttm?symbol={ticker}&apikey={api_key}"),
+            (DIV_CAL, f"https://financialmodelingprep.com/stable/dividends?symbol={ticker}&apikey={api_key}"),
             (EARNINGS_CAL, f"https://financialmodelingprep.com/stable/earnings?symbol={ticker}&apikey={api_key}")
         ]
 
@@ -158,7 +162,7 @@ class FinancialAnalysis:
             for d in results:
                 self.data_raw_financials.update(d)
 
-    def _get_latest_value(self, ticker, fin_key, metrics, idx=0, default_value=0.0):
+    def _get_latest_value(self, ticker, fin_key, metrics, idx=0, default_value=0.0, is_est=True):
         # Ticker does not exists
         if self.data_raw_financials.get(ticker) is None:
             return default_value
@@ -172,14 +176,17 @@ class FinancialAnalysis:
             return default_value
 
         if fin_key == DIV_CAL:
-            if len(self.data_raw_financials[ticker][fin_key]['historical']) == 0:
+            if len(self.data_raw_financials[ticker][fin_key]) == 0:
                 return None
+            
+            val = self.data_raw_financials[ticker][fin_key][idx].get(metrics, default_value)
 
-            val = self.data_raw_financials[ticker][fin_key]['historical'][idx].get(metrics, default_value)
-
-        elif fin_key == EARNINGS_CAL:
+        if fin_key == EARNINGS_CAL:
             for cal in self.data_raw_financials[ticker][fin_key]:
-                if cal['revenueEstimated'] is not None:
+                if is_est and cal['revenueEstimated'] is not None:
+                    val = cal[metrics]
+                    break
+                elif not is_est and cal['revenueActual'] is not None:
                     val = cal[metrics]
                     break
 
@@ -215,13 +222,13 @@ class FinancialAnalysis:
         rev = revenue
         '''
         # Gross margin previous quarter
-        gm_prev_1q = self._get_latest_value(ticker, QUAR_INCOME, 'grossProfitRatio', idx=0)
+        gm_prev_1q = self._get_latest_value(ticker, QUAR_RATIO, 'grossProfitMargin', idx=0)
 
         # Gross margin previous year
-        gm_prev_1y = self._get_latest_value(ticker, ANN_INCOME, 'grossProfitRatio', idx=0, default_value=None)
-        gm_prev_3y = self._get_latest_value(ticker, ANN_INCOME, 'grossProfitRatio', idx=2, default_value=None)
-        gm_prev_5y = self._get_latest_value(ticker, ANN_INCOME, 'grossProfitRatio', idx=4, default_value=None)
-        gm_prev_10y = self._get_latest_value(ticker, ANN_INCOME, 'grossProfitRatio', idx=9, default_value=None)
+        gm_prev_1y = self._get_latest_value(ticker, ANN_RATIO, 'grossProfitMargin', idx=0, default_value=None)
+        gm_prev_3y = self._get_latest_value(ticker, ANN_RATIO, 'grossProfitMargin', idx=2, default_value=None)
+        gm_prev_5y = self._get_latest_value(ticker, ANN_RATIO, 'grossProfitMargin', idx=4, default_value=None)
+        gm_prev_10y = self._get_latest_value(ticker, ANN_RATIO, 'grossProfitMargin', idx=9, default_value=None)
 
         # Gross margin TTM
         gp_prev_1q = self._get_latest_value(ticker, QUAR_INCOME, 'grossProfit', idx=0)
@@ -272,11 +279,11 @@ class FinancialAnalysis:
         eps_prev_6q = self._get_latest_value(ticker, QUAR_INCOME, 'eps', idx=5)
         eps_prev_7q = self._get_latest_value(ticker, QUAR_INCOME, 'eps', idx=6)
         eps_prev_8q = self._get_latest_value(ticker, QUAR_INCOME, 'eps', idx=7)
-        eps_ttm = self._safe_div(eps_prev_1q + eps_prev_2q + eps_prev_3q + eps_prev_4q,
-                                 eps_prev_5q + eps_prev_6q + eps_prev_7q + eps_prev_8q)
+        eps_cagr_ttm = self._safe_div(eps_prev_1q + eps_prev_2q + eps_prev_3q + eps_prev_4q,
+                                      eps_prev_5q + eps_prev_6q + eps_prev_7q + eps_prev_8q) - 1.0
 
         metrics = {
-            'EPS CAGR (TTM)': eps_ttm,
+            'EPS CAGR (TTM)': eps_cagr_ttm,
             'EPS CAGR (1Y)': eps_cagr_1y,
             'EPS CAGR (3Y)': eps_cagr_3y,
             'EPS CAGR (5Y)': eps_cagr_5y,
@@ -352,37 +359,61 @@ class FinancialAnalysis:
 
         return metrics
 
+    def _calc_capex_ni(self, ticker):
+        capex_prev_1q = self._get_latest_value(ticker, QUAR_CF, 'capitalExpenditure', idx=0)
+        capex_prev_2q = self._get_latest_value(ticker, QUAR_CF, 'capitalExpenditure', idx=1)
+        capex_prev_3q = self._get_latest_value(ticker, QUAR_CF, 'capitalExpenditure', idx=2)
+        capex_prev_4q = self._get_latest_value(ticker, QUAR_CF, 'capitalExpenditure', idx=3)
+
+        ni_prev_1q = self._get_latest_value(ticker, QUAR_INCOME, 'netIncome', idx=0)
+        ni_prev_2q = self._get_latest_value(ticker, QUAR_INCOME, 'netIncome', idx=1)
+        ni_prev_3q = self._get_latest_value(ticker, QUAR_INCOME, 'netIncome', idx=2)
+        ni_prev_4q = self._get_latest_value(ticker, QUAR_INCOME, 'netIncome', idx=3)
+        capex_ni_ttm = self._safe_div(capex_prev_1q + capex_prev_2q + capex_prev_3q + capex_prev_4q,
+                                        ni_prev_1q + ni_prev_2q + ni_prev_3q + ni_prev_4q)
+
+        tot_5y_capex = sum([
+            self._get_latest_value(ticker, ANN_CF, 'capitalExpenditure', idx=i) for i in range(5)
+        ])
+        tot_5y_ni = sum([
+            self._get_latest_value(ticker, ANN_INCOME, 'netIncome', idx=i) for i in range(5)
+        ])
+        capex_ni_5y = self._safe_div(tot_5y_capex, tot_5y_ni)
+
+        tot_10y_capex = sum([
+            self._get_latest_value(ticker, ANN_CF, 'capitalExpenditure', idx=i) for i in range(10)
+        ])
+        tot_10y_ni = sum([
+            self._get_latest_value(ticker, ANN_INCOME, 'netIncome', idx=i) for i in range(10)
+        ])
+        capex_ni_10y = self._safe_div(tot_10y_capex, tot_10y_ni)
+
+        metrics = {
+            'CAPEX / Net Income (TTM)': capex_ni_ttm,
+            'CAPEX / Net Income (5Y AVG)': capex_ni_5y,
+            'CAPEX / Net Income (10Y AVG)': capex_ni_10y,
+        }
+
+        return metrics
 
     def _get_investment_metrics(self):
         with st.spinner('Calculating (2/5) - Investment Metrics'):
             for ticker in self.ticker_ls:
-                capex_prev_1q = self._get_latest_value(ticker, QUAR_CF, 'capitalExpenditure', idx=0)
-                capex_prev_2q = self._get_latest_value(ticker, QUAR_CF, 'capitalExpenditure', idx=1)
-                capex_prev_3q = self._get_latest_value(ticker, QUAR_CF, 'capitalExpenditure', idx=2)
-                capex_prev_4q = self._get_latest_value(ticker, QUAR_CF, 'capitalExpenditure', idx=3)
-
-                ni_prev_1q = self._get_latest_value(ticker, QUAR_INCOME, 'netIncome', idx=0)
-                ni_prev_2q = self._get_latest_value(ticker, QUAR_INCOME, 'netIncome', idx=1)
-                ni_prev_3q = self._get_latest_value(ticker, QUAR_INCOME, 'netIncome', idx=2)
-                ni_prev_4q = self._get_latest_value(ticker, QUAR_INCOME, 'netIncome', idx=3)
-
-                capex_ni_ttm = self._safe_div(capex_prev_1q + capex_prev_2q + capex_prev_3q + capex_prev_4q,
-                                              ni_prev_1q + ni_prev_2q + ni_prev_3q + ni_prev_4q)
-
                 gm_metrics = self._calc_gross_margin_sec(ticker)
                 eps_metrics = self._calc_eps_sec(ticker)
                 rev_metrics = self._calc_revenue_sec(ticker)
                 roe_metrics = self._calc_roe_sec(ticker)
+                capex_ni_metrics = self._calc_capex_ni(ticker)
 
                 metrics = {
                     'Mind Share': None,
                     'Market Share': None,
-                    'CAPEX / Net Income (TTM)': capex_ni_ttm,
 
                     **gm_metrics,
                     **eps_metrics,
                     **rev_metrics,
                     **roe_metrics,
+                    **capex_ni_metrics,
                 }
 
                 for k, v in metrics.items():
@@ -428,9 +459,9 @@ class FinancialAnalysis:
         '''
         with st.spinner('Calculating (4/5) - Valuation'):
             for idx, ticker in enumerate(self.ticker_ls):
-                div_yield_ttm = self._get_latest_value(ticker, RATIO_TTM, 'dividendYielTTM', idx=0)
-                pe_ttm = self._get_latest_value(ticker, RATIO_TTM, 'peRatioTTM', idx=0)
-                peg_ttm = self._get_latest_value(ticker, RATIO_TTM, 'pegRatioTTM', idx=0)
+                div_yield_ttm = self._get_latest_value(ticker, RATIO_TTM, 'dividendYieldTTM', idx=0)
+                pe_ttm = self._get_latest_value(ticker, RATIO_TTM, 'priceToEarningsRatioTTM', idx=0)
+                peg_ttm = self._get_latest_value(ticker, RATIO_TTM, 'priceToEarningsGrowthRatioTTM', idx=0)
                 peg_1y = self._safe_div(pe_ttm, self.data_invest_metrics['EPS CAGR (1Y)'][idx])
                 peg_3y = self._safe_div(pe_ttm, self.data_invest_metrics['EPS CAGR (3Y)'][idx])
 
@@ -478,6 +509,30 @@ class FinancialAnalysis:
                 next_earnings_estimate_eps = self._get_latest_value(ticker, EARNINGS_CAL, 'epsEstimated')
                 next_earnings_estimate_revenue = self._get_latest_value(ticker, EARNINGS_CAL, 'revenueEstimated')
 
+                # Beat Estimate
+                est_eps = self._get_latest_value(ticker, EARNINGS_CAL, 'epsEstimated', is_est=False)
+                act_eps = self._get_latest_value(ticker, EARNINGS_CAL, 'epsActual', is_est=False)
+                act_eps_update_date = self._get_latest_value(ticker, EARNINGS_CAL, 'date', is_est=False)
+                beat_estimate = self._safe_div(act_eps, est_eps) - 1.0
+
+                # ROIC (Return on Investment Capital)
+                ebit_ttm = sum([
+                    self._get_latest_value(ticker, QUAR_INCOME, 'ebit', idx=i) for i in range(4)
+                ])
+                tax_rate = self._get_latest_value(ticker, ANN_RATIO, 'effectiveTaxRate')
+                total_debt = self._get_latest_value(ticker, QUAR_BALANCE, 'totalDebt')
+                total_equity = self._get_latest_value(ticker, QUAR_BALANCE, 'totalEquity')
+                cash_equiv = self._get_latest_value(ticker, QUAR_BALANCE, 'cashAndCashEquivalents')
+                roic = self._safe_div(ebit_ttm * (1 - tax_rate), total_debt + total_equity - cash_equiv)
+
+                st.json({
+                    'ebit_ttm': ebit_ttm,
+                    'tax_rate': tax_rate,
+                    'total_debt': total_debt,
+                    'total_equity': total_equity,
+                    'cash_equiv': cash_equiv,
+                })
+
                 metrics = {
                     'Total Revenue (Last Quarter)': tot_rev_prev_q,
                     'Gross Profit (Last Quarter)': gross_profit_prev_q,
@@ -489,11 +544,14 @@ class FinancialAnalysis:
                     'EPS (TTM)': eps_ttm,
                     'Last Ex-Dividend Date': ex_div_dt,
                     'Last Dividend Value': div,
+                    'ROIC': roic,
 
                     'Payout Ratio (TTM)': payout_r,
                     'Next Earnings Date': next_earnings_date,
                     'Next Earnings Estimate EPS': next_earnings_estimate_eps,
                     'Next Earnings Estimate Revenue': next_earnings_estimate_revenue,
+                    'Beat Estimate': beat_estimate,
+                    'Beat Estimate (Updated On)': act_eps_update_date,
                 }
 
                 for k, v in metrics.items():
@@ -536,6 +594,7 @@ class FinancialAnalysis:
 
             # (B) Investment Metrics
             'Mind Share', 'Market Share', 'Dividend Yield (TTM)', 'CAPEX / Net Income (TTM)', 
+            'CAPEX / Net Income (5Y AVG)', 'CAPEX / Net Income (10Y AVG)',
             'EPS CAGR (TTM)', 'EPS CAGR (5Y)', 'EPS CAGR (10Y)', 
             'Gross Margin (TTM)', 'Trailing PE (TTM)', 'PEG Ratio (TTM)',
             
@@ -553,8 +612,8 @@ class FinancialAnalysis:
             # (E) Financial Ratio
             'Total Revenue (Last Quarter)', 'Gross Profit (Last Quarter)',
             'Capital Expenditure (Last Year)', 'Net Income (TTM)', 'Net Income (Last Year)', 'Net Income (Last Quarter)',
-            'EPS (TTM)', 'Last Ex-Dividend Date', 'Last Dividend Value', 'Payout Ratio (TTM)',
-            'Next Earnings Date', 'Next Earnings Estimate EPS', 'Next Earnings Estimate Revenue',
+            'EPS (TTM)', 'Last Ex-Dividend Date', 'Last Dividend Value', 'Payout Ratio (TTM)', 'ROIC',
+            'Next Earnings Date', 'Next Earnings Estimate EPS', 'Next Earnings Estimate Revenue', 'Beat Estimate', 'Beat Estimate (Updated On)',
         ]
         raw_data_df = raw_data_df[reorder_columns]
 
