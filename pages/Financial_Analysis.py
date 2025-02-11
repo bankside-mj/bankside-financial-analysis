@@ -46,14 +46,13 @@ class FinancialAnalysis:
             'EPS CAGR (TTM)', 'EPS CAGR (1Y)', 'EPS CAGR (3Y)', 'EPS CAGR (5Y)', 'EPS CAGR (10Y)',
             'Revenue CAGR (1Y)', 'Revenue CAGR (3Y)', 'Revenue CAGR (5Y)', 'Revenue CAGR (10Y)',
             'ROE (TTM)', 'ROE (FY -1)', 'ROE (FY -3)', 'ROE (FY -5)', 'ROE (FY -10)',
-            'Dividend Yield', 'CAPEX / Net Income',
+            'Dividend Yield', 'CAPEX / Net Income', 'Payout Ratio',
         ]
         self.num_col_ls = [
             'Current Price', 'Beta', 'Net Debt to Equity (Last Quarter)', 
             'Receivable / Revenue (Last FY)', 'Inventory / Revenue (Last FY)',
             'Trailing PE (TTM)', 'PEG Ratio (TTM)', 'PEG Ratio (FY -1)', 'PEG Ratio (FY -3)',
-             'EPS (TTM)', 'Last Dividend Value',
-            'Payout Ratio (TTM)'
+            'EPS (TTM)', 'Last Dividend Value',
         ]
         self.txt_col_ls = [
             'Market Cap', 'Total Revenue (Last Quarter)', 'Gross Profit (Last Quarter)',
@@ -412,7 +411,7 @@ class FinancialAnalysis:
         '''
         with st.spinner('Calculating (4/5) - Valuation'):
             for idx, ticker in enumerate(self.ticker_ls):
-                div_yield_ttm = self._get_latest_value(ticker, RATIO_TTM, 'dividendYielTTM', idx=0)
+                div_yield_ttm = self._get_latest_value(ticker, RATIO, 'dividendYield', idx=0)
                 pe_ttm = self._get_latest_value(ticker, RATIO_TTM, 'peRatioTTM', idx=0)
                 peg_ttm = self._get_latest_value(ticker, RATIO_TTM, 'pegRatioTTM', idx=0)
                 peg_1y = self._safe_div(pe_ttm, self.data_invest_metrics['EPS CAGR (1Y)'][idx])
@@ -445,7 +444,7 @@ class FinancialAnalysis:
                 ni_prev_yr = self._get_latest_value(ticker, ANN_INCOME, 'netIncome', idx=0)
                 ni_ttm = ni_prev_q + ni_prev_2q + ni_prev_3q + ni_prev_4q
 
-                payout_r_ttm = self._get_latest_value(ticker, RATIO_TTM, 'payoutRatioTTM', idx=0)
+                payout_r = self._get_latest_value(ticker, RATIO, 'dividendPayoutRatio', idx=0)
 
                 ex_div_dt = self._get_latest_value(ticker, DIV_CAL, 'recordDate', idx=0)
                 div = self._get_latest_value(ticker, DIV_CAL, 'dividend', idx=0)
@@ -469,7 +468,7 @@ class FinancialAnalysis:
                     'Last Ex-Dividend Date': ex_div_dt,
                     'Last Dividend Value': div,
 
-                    'Payout Ratio (TTM)': payout_r_ttm,
+                    'Payout Ratio': payout_r,
                 }
 
                 for k, v in metrics.items():
@@ -526,7 +525,7 @@ class FinancialAnalysis:
             # (E) Financial Ratio
             'Total Revenue (Last Quarter)', 'Gross Profit (Last Quarter)',
             'Capital Expenditure (Last Year)', 'Net Income (TTM)', 'Net Income (Last Year)', 'Net Income (Last Quarter)',
-            'EPS (TTM)', 'Last Ex-Dividend Date', 'Last Dividend Value', 'Payout Ratio (TTM)',
+            'EPS (TTM)', 'Last Ex-Dividend Date', 'Last Dividend Value', 'Payout Ratio',
         ]
         raw_data_df = raw_data_df[reorder_columns]
 
