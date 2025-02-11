@@ -7,6 +7,8 @@ import streamlit as st
 from urllib.parse import urlparse, parse_qs, quote, unquote
 
 import pandas as pd
+from main.data.data_layout import DataLayout
+from main.util import c_text
 from main.util.fetch import fetch_data
 from main.common.common_layout import CommonLayout
 
@@ -597,10 +599,20 @@ class FinancialAnalysis:
 
         st.title("Financial Analysis")
 
+        # us_tab, cn_tab, jp_tab = st.tabs(["US", "CN", "JP"])
+
+        # us_data_layout = DataLayout()
+        # cn_data_layout = DataLayout()
+        # jp_data_layout = DataLayout()
+
+        # with us_tab:
+        #     us_data_layout.input_ticker__value = st.text_input(c_text.INPUT_HINT__TICKER, value=us_data_layout.input_ticker__value)
+
         default_value = self._get_query_parameter('tickers')
         if default_value:
             default_value = unquote(default_value)
-        self.ticker_ls = st.text_input("Enter FMP ticker, separate with comma", value=default_value)
+
+        self.ticker_ls = st.text_input(c_text.INPUT_HINT__TICKER, value=default_value)
 
         if st.button('Submit'):
             self._get_query()

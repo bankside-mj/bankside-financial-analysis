@@ -1,0 +1,1 @@
+INPUT_HINT__TICKER = "Enter FMP ticker, separate with comma"
