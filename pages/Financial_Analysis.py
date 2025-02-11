@@ -38,6 +38,9 @@ class FinancialAnalysis:
         self.data_invest_risks = defaultdict(list)
         self.data_valuation = defaultdict(list)
         self.data_fin = defaultdict(list)
+
+        # Storing data
+        self.raw_basic_info = defaultdict(dict)
         self.data_raw_financials = defaultdict(dict)
 
         self.pct_col_ls = [
@@ -84,67 +87,35 @@ class FinancialAnalysis:
 
         return txt
 
-    def _get_basic_info(self, batch_size=10):
+    def _get_basic_info(self):
         with st.spinner('Calculating (1/5) - Basic Info'):
             not_found_ticker_ls = []
             for ticker in self.ticker_ls:
-                url = f"https://financialmodelingprep.com/api/v3/profile/{ticker}?apikey={os.getenv('FMP_KEY')}"
-                result_ls = fetch_data(url)
+                if not ticker in self.raw_basic_info.keys():
+                    url = f"https://financialmodelingprep.com/api/v3/profile/{ticker}?apikey={os.getenv('FMP_KEY')}"
+                    result_ls = fetch_data(url)
 
-                if len(result_ls) == 0:
-                    not_found_ticker_ls.append(ticker)
-                    continue
+                    if len(result_ls) == 0:
+                        not_found_ticker_ls.append(ticker)
+                        continue
 
-                for result in result_ls:
-
-                    cur_ticker = result.get('symbol')
-                    reported_ccy = self._get_latest_value(cur_ticker, ANN_INCOME, 'reportedCurrency', idx=0)
-
-                    self.data_basic_info['Company Name'].append(result.get('companyName'))
-                    self.data_basic_info['Ticker'].append(cur_ticker)
-                    self.data_basic_info['Sector'].append(result.get('sector'))
-                    # self.data_basic_info['Industry'].append(result.get('industry'))
-                    self.data_basic_info['Currency'].append(result.get('currency'))
-                    self.data_basic_info['Current Price'].append(result.get('price'))
-                    self.data_basic_info['Market Cap'].append(result.get('mktCap'))
-                    self.data_basic_info['Beta'].append(result.get('beta'))
-                    # self.data_basic_info['Exchange'].append(result.get('exchange'))
-                    # self.data_basic_info['Reported Currency'].append(reported_ccy)
-
-
-            # batch_ticker_ls = [
-            #     self.ticker_ls[i:i+batch_size] for i in range(0, len(self.ticker_ls), batch_size)
-            # ]
-
-            
-            # for ticker_ls in batch_ticker_ls:
-            #     url_ticker_ls = ','.join(ticker_ls)
-
-            #     url = f"https://financialmodelingprep.com/api/v3/profile/{url_ticker_ls}?apikey={os.getenv('FMP_KEY')}"
-            #     result_ls = fetch_data(url)
-
-            #     if result_ls is not None:
-            #         for result in result_ls:
-
-            #             cur_ticker = result.get('symbol')
-            #             reported_ccy = self._get_latest_value(cur_ticker, ANN_INCOME, 'reportedCurrency', idx=0)
-
-            #             self.data_basic_info['Company Name'].append(result.get('companyName'))
-            #             self.data_basic_info['Ticker'].append(cur_ticker)
-            #             self.data_basic_info['Sector'].append(result.get('sector'))
-            #             # self.data_basic_info['Industry'].append(result.get('industry'))
-            #             self.data_basic_info['Currency'].append(result.get('currency'))
-            #             self.data_basic_info['Current Price'].append(result.get('price'))
-            #             self.data_basic_info['Market Cap'].append(result.get('mktCap'))
-            #             self.data_basic_info['Beta'].append(result.get('beta'))
-            #             # self.data_basic_info['Exchange'].append(result.get('exchange'))
-            #             # self.data_basic_info['Reported Currency'].append(reported_ccy)
-
-            #             ticker_ls.remove(cur_ticker)
-
+                    self.raw_basic_info[ticker] = result_ls[0]  # Store the result
                 
-            #     # Add non found ticker to 
-            #     not_found_ticker_ls.extend(ticker_ls)
+                result = self.raw_basic_info[ticker]
+
+                cur_ticker = result.get('symbol')
+                reported_ccy = self._get_latest_value(cur_ticker, ANN_INCOME, 'reportedCurrency', idx=0)
+
+                self.data_basic_info['Company Name'].append(result.get('companyName'))
+                self.data_basic_info['Ticker'].append(cur_ticker)
+                self.data_basic_info['Sector'].append(result.get('sector'))
+                # self.data_basic_info['Industry'].append(result.get('industry'))
+                self.data_basic_info['Currency'].append(result.get('currency'))
+                self.data_basic_info['Current Price'].append(result.get('price'))
+                self.data_basic_info['Market Cap'].append(result.get('mktCap'))
+                self.data_basic_info['Beta'].append(result.get('beta'))
+                # self.data_basic_info['Exchange'].append(result.get('exchange'))
+                # self.data_basic_info['Reported Currency'].append(reported_ccy)
 
             # Remove non found ticker
             if len(not_found_ticker_ls) > 0:
