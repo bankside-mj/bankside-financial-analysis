@@ -592,34 +592,26 @@ class FinancialAnalysis:
         # Display Raw Data
         st.dataframe(raw_data_df)
 
-        # Option to download the table
-        fmt_dt = dt.datetime.now().strftime('%Y-%m-%d ')
-
-        raw_filename = f"financial_data_raw__{fmt_dt.replace(' ', '_')}.xlsx"
-        raw_excel = Writer.convert_df_to_excel(raw_data_df)
-        raw_b64_excel = base64.b64encode(raw_excel).decode()
-        href_excel = f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{raw_b64_excel}" download="{raw_filename}">Download as Raw Excel file</a>'
-        st.markdown(href_excel, unsafe_allow_html=True)
-
+        # Format Table
         fmt_data_df = self._format_column(raw_data_df)
-        filename = f"financial_data_formatted__{fmt_dt.replace(' ', '_')}.xlsx"
+        excel = Writer.convert_df_to_excel(fmt_data_df, self.data_layout_dict, percentage_columns=self.pct_col_ls, decimal_columns=self.num_col_ls)
 
-        excel = Writer.convert_df_to_excel(fmt_data_df, percentage_columns=self.pct_col_ls, decimal_columns=self.num_col_ls)
+        # Option to download the table
+        fmt_dt = dt.datetime.now().strftime('%Y-%m-%d')
+        filename = f"financial_data_formatted__{fmt_dt.replace(' ', '_')}.xlsx"
         b64_excel = base64.b64encode(excel).decode()
         href_excel = f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64_excel}" download="{filename}">Download as Formatted Excel file</a>'
         st.markdown(href_excel, unsafe_allow_html=True)
 
-    def _get_query(self, data_layout_ls):
+    def _get_query(self, data_layout_dict):
         # Process Data
-        for data_layout in data_layout_ls:
+        for data_layout in data_layout_dict.values():
             data_layout.batch_process_ticker()
 
         self.ticker_ls = []
-        for data_layout in data_layout_ls:
+        for data_layout in data_layout_dict.values():
             self.ticker_ls.extend(data_layout.master_ticker_ls)
-        
-        st.json({'ticker_ls': self.ticker_ls})
-        
+                
         if not self._has_ticket(self.ticker_ls):
             return None
         
@@ -644,7 +636,11 @@ class FinancialAnalysis:
         us_data_layout = DataContainer()
         cn_data_layout = DataContainer()
         jp_data_layout = DataContainer()
-        data_layout_ls = [us_data_layout, cn_data_layout, jp_data_layout]
+        self.data_layout_dict = {
+            c_text.LABEL__US: us_data_layout, 
+            c_text.LABEL__CN: cn_data_layout, 
+            c_text.LABEL__JP: jp_data_layout
+        }
 
         with us_tab:
             st.markdown(c_text.INPUT_HINT__TICKER)
@@ -669,7 +665,7 @@ class FinancialAnalysis:
 
         if st.button(c_text.LABEL__SUBMIT):
             st.divider()
-            self._get_query(data_layout_ls)
+            self._get_query(self.data_layout_dict)
             self._build_downloadable_dataframe()
 
 

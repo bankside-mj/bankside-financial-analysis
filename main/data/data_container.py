@@ -18,6 +18,16 @@ class DataContainer:
     def __init__(self):
         pass
 
+    def _split_input(self, txt):
+        txt = re.split('[;, ]+', txt)
+        txt = [t.upper().strip() for t in txt]
+        txt = list(filter(lambda x: x != '', txt))
+
+        return txt
+    
+    def is_empty(self) -> bool:
+        return len(self.master_ticker_ls) == 0
+
     def batch_process_ticker(self):
         self.value_ticker_ls = self._split_input(self.input_ticker__value)
         self.growth_ticker_ls = self._split_input(self.input_ticker__growth)
@@ -25,14 +35,7 @@ class DataContainer:
         self.watchlist_ticker_ls = self._split_input(self.input_ticker__watchlist)
 
         self.master_ticker_ls = self.value_ticker_ls + self.growth_ticker_ls + self.theme_ticker_ls + self.watchlist_ticker_ls
-        self.master_ticker_ls = list(dict.fromkeys(self.master_ticker_ls))
-
-    def _split_input(self, txt):
-        txt = re.split('[;, ]+', txt)
-        txt = [t.upper().strip() for t in txt]
-        txt = list(filter(lambda x: x != '', txt))
-
-        return txt
+        self.master_ticker_ls = list(dict.fromkeys(self.master_ticker_ls))    
 
     def __repr__(self):
         return f'''
