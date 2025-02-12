@@ -1,4 +1,4 @@
-from main.util import c_text
+from main.constants import c_text
 
 
 class DataLayout:
