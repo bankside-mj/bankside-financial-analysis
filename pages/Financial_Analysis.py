@@ -50,7 +50,7 @@ class FinancialAnalysis:
         self.pct_col_ls = [
             'Gross Margin (Last Quarter)', 'Gross Margin (TTM)', 'Gross Margin (FY -1)', 
             'Gross Margin (FY -3)', 'Gross Margin (FY -5)', 'Gross Margin (FY -10)',
-            'EPS CAGR (TTM)', 'EPS CAGR (1Y)', 'EPS CAGR (3Y)', 'EPS CAGR (5Y)', 'EPS CAGR (10Y)',
+            'EPS CAGR (TTM)', 'EPS CAGR (3Y, TTM)', 'EPS CAGR (5Y, TTM)', 'EPS CAGR (10Y, TTM)',
             'Revenue CAGR (1Y)', 'Revenue CAGR (3Y)', 'Revenue CAGR (5Y)', 'Revenue CAGR (10Y)',
             'ROE (TTM)', 'ROE (FY -1)', 'ROE (FY -3)', 'ROE (FY -5)', 'ROE (FY -10)',
             'Dividend Yield (TTM)', 'Payout Ratio (TTM)', 
@@ -128,7 +128,7 @@ class FinancialAnalysis:
                 st.warning(f'The following ticker are not found: {not_found_ticker_ls}')
                 self.ticker_ls = list(filter(lambda x: x not in not_found_ticker_ls, self.ticker_ls))
 
-    def _fetch_multi_financials(self, ticker, limit=15):
+    def _fetch_multi_financials(self, ticker, limit=10):
         result = defaultdict(dict)
         
         api_key = os.getenv('FMP_KEY')
@@ -139,11 +139,11 @@ class FinancialAnalysis:
             (QUAR_BALANCE, f"https://financialmodelingprep.com/stable/balance-sheet-statement?symbol={ticker}&period=quarterly&limit={limit}&apikey={api_key}"),
             (ANN_CF, f"https://financialmodelingprep.com/stable/cash-flow-statement?symbol={ticker}&period=annual&limit={limit}&apikey={api_key}"),
             (QUAR_CF, f"https://financialmodelingprep.com/stable/cash-flow-statement?symbol={ticker}&period=quarterly&limit={limit}&apikey={api_key}"),
-            (ANN_RATIO, f"https://financialmodelingprep.com/stable/ratios?symbol={ticker}&period=annual&apikey={api_key}"),
-            (QUAR_RATIO, f"https://financialmodelingprep.com/stable/ratios?symbol={ticker}&period=quarterly&apikey={api_key}"),
-            (RATIO_TTM, f"https://financialmodelingprep.com/stable/ratios-ttm?symbol={ticker}&apikey={api_key}"),
-            (DIV_CAL, f"https://financialmodelingprep.com/stable/dividends?symbol={ticker}&apikey={api_key}"),
-            (EARNINGS_CAL, f"https://financialmodelingprep.com/stable/earnings?symbol={ticker}&apikey={api_key}")
+            (ANN_RATIO, f"https://financialmodelingprep.com/stable/ratios?symbol={ticker}&period=annual&apikey={api_key}&limit={limit}"),
+            (QUAR_RATIO, f"https://financialmodelingprep.com/stable/ratios?symbol={ticker}&period=quarterly&apikey={api_key}&limit={limit}"),
+            (RATIO_TTM, f"https://financialmodelingprep.com/stable/ratios-ttm?symbol={ticker}&apikey={api_key}&limit={limit}"),
+            (DIV_CAL, f"https://financialmodelingprep.com/stable/dividends?symbol={ticker}&apikey={api_key}&limit={limit}"),
+            (EARNINGS_CAL, f"https://financialmodelingprep.com/stable/earnings?symbol={ticker}&apikey={api_key}&limit={limit + 40}")
         ]
 
         for key, url in endpoints:
@@ -193,6 +193,30 @@ class FinancialAnalysis:
         else:
             val = self.data_raw_financials[ticker][fin_key][idx].get(metrics, default_value)
 
+        return val
+
+    def _get_earnings_cal(self, ticker, fin_key, metrics, is_est=True, beg_n: int=None, end_n: int=None):
+        if beg_n is None:
+            for cal in self.data_raw_financials[ticker][fin_key]:
+                if is_est and cal['revenueEstimated'] is not None:
+                    val = cal[metrics]
+                    break
+                elif not is_est and cal['revenueActual'] is not None:
+                    val = cal[metrics]
+                    break
+        else:
+            val = 0
+            counter = 0
+            for cal in self.data_raw_financials[ticker][fin_key]:
+                if cal[metrics] is not None:
+                    counter += 1
+
+                    if counter >= beg_n:
+                        val += cal[metrics]
+                
+                if counter == end_n:
+                    break
+    
         return val
 
     def _calc_cagr(self, latest_val, ori_val, period):
@@ -259,35 +283,22 @@ class FinancialAnalysis:
         '''
         eps = earnings per share
         '''
-        eps_prev_1y = self._get_latest_value(ticker, ANN_INCOME, 'eps', idx=0)
-        eps_prev_2y = self._get_latest_value(ticker, ANN_INCOME, 'eps', idx=1)
-        eps_prev_3y = self._get_latest_value(ticker, ANN_INCOME, 'eps', idx=2)
-        eps_prev_5y = self._get_latest_value(ticker, ANN_INCOME, 'eps', idx=4)
-        eps_prev_10y = self._get_latest_value(ticker, ANN_INCOME, 'eps', idx=9)
+        eps_prev_1y = self._get_earnings_cal(ticker, EARNINGS_CAL, 'epsActual', beg_n=1, end_n=4)
+        eps_prev_2y = self._get_earnings_cal(ticker, EARNINGS_CAL, 'epsActual', beg_n=5, end_n=8)
+        eps_prev_3y = self._get_earnings_cal(ticker, EARNINGS_CAL, 'epsActual', beg_n=9, end_n=12)
+        eps_prev_5y = self._get_earnings_cal(ticker, EARNINGS_CAL, 'epsActual', beg_n=17, end_n=20)
+        eps_prev_10y = self._get_earnings_cal(ticker, EARNINGS_CAL, 'epsActual', beg_n=37, end_n=40)
 
-        eps_cagr_1y = self._calc_cagr(eps_prev_1y, eps_prev_2y, 1)
+        eps_cagr_ttm = self._calc_cagr(eps_prev_1y, eps_prev_2y, 1)
         eps_cagr_3y = self._calc_cagr(eps_prev_1y, eps_prev_3y, 3)
         eps_cagr_5y = self._calc_cagr(eps_prev_1y, eps_prev_5y, 5)
         eps_cagr_10y = self._calc_cagr(eps_prev_1y, eps_prev_10y, 10)
         
-        # EPS TTM
-        eps_prev_1q = self._get_latest_value(ticker, QUAR_INCOME, 'eps', idx=0)
-        eps_prev_2q = self._get_latest_value(ticker, QUAR_INCOME, 'eps', idx=1)
-        eps_prev_3q = self._get_latest_value(ticker, QUAR_INCOME, 'eps', idx=2)
-        eps_prev_4q = self._get_latest_value(ticker, QUAR_INCOME, 'eps', idx=3)
-        eps_prev_5q = self._get_latest_value(ticker, QUAR_INCOME, 'eps', idx=4)
-        eps_prev_6q = self._get_latest_value(ticker, QUAR_INCOME, 'eps', idx=5)
-        eps_prev_7q = self._get_latest_value(ticker, QUAR_INCOME, 'eps', idx=6)
-        eps_prev_8q = self._get_latest_value(ticker, QUAR_INCOME, 'eps', idx=7)
-        eps_cagr_ttm = self._safe_div(eps_prev_1q + eps_prev_2q + eps_prev_3q + eps_prev_4q,
-                                      eps_prev_5q + eps_prev_6q + eps_prev_7q + eps_prev_8q) - 1.0
-
         metrics = {
             'EPS CAGR (TTM)': eps_cagr_ttm,
-            'EPS CAGR (1Y)': eps_cagr_1y,
-            'EPS CAGR (3Y)': eps_cagr_3y,
-            'EPS CAGR (5Y)': eps_cagr_5y,
-            'EPS CAGR (10Y)': eps_cagr_10y,
+            'EPS CAGR (3Y, TTM)': eps_cagr_3y,
+            'EPS CAGR (5Y, TTM)': eps_cagr_5y,
+            'EPS CAGR (10Y, TTM)': eps_cagr_10y,
         }
 
         return metrics
@@ -462,8 +473,8 @@ class FinancialAnalysis:
                 div_yield_ttm = self._get_latest_value(ticker, RATIO_TTM, 'dividendYieldTTM', idx=0)
                 pe_ttm = self._get_latest_value(ticker, RATIO_TTM, 'priceToEarningsRatioTTM', idx=0)
                 peg_ttm = self._get_latest_value(ticker, RATIO_TTM, 'priceToEarningsGrowthRatioTTM', idx=0)
-                peg_1y = self._safe_div(pe_ttm, self.data_invest_metrics['EPS CAGR (1Y)'][idx])
-                peg_3y = self._safe_div(pe_ttm, self.data_invest_metrics['EPS CAGR (3Y)'][idx])
+                peg_1y = self._safe_div(pe_ttm, self.data_invest_metrics['EPS CAGR (TTM)'][idx])
+                peg_3y = self._safe_div(pe_ttm, self.data_invest_metrics['EPS CAGR (3Y, TTM)'][idx])
 
                 metrics = {
                     'Dividend Yield (TTM)': div_yield_ttm,
@@ -498,11 +509,7 @@ class FinancialAnalysis:
                 div = self._get_latest_value(ticker, DIV_CAL, 'dividend', idx=0)
 
                 # Calc EPS TTM
-                eps_prev_1q = self._get_latest_value(ticker, QUAR_INCOME, 'eps', idx=0)
-                eps_prev_2q = self._get_latest_value(ticker, QUAR_INCOME, 'eps', idx=1)
-                eps_prev_3q = self._get_latest_value(ticker, QUAR_INCOME, 'eps', idx=2)
-                eps_prev_4q = self._get_latest_value(ticker, QUAR_INCOME, 'eps', idx=3)
-                eps_ttm = eps_prev_1q + eps_prev_2q + eps_prev_3q + eps_prev_4q
+                eps_ttm = self._get_earnings_cal(ticker, EARNINGS_CAL, 'epsActual', beg_n=1, end_n=4)
 
                 # Earnings Date
                 next_earnings_date = self._get_latest_value(ticker, EARNINGS_CAL, 'date')
@@ -595,10 +602,10 @@ class FinancialAnalysis:
             # (B) Investment Metrics
             'Mind Share', 'Market Share', 'Dividend Yield (TTM)', 'CAPEX / Net Income (TTM)', 
             'CAPEX / Net Income (5Y AVG)', 'CAPEX / Net Income (10Y AVG)',
-            'EPS CAGR (TTM)', 'EPS CAGR (5Y)', 'EPS CAGR (10Y)', 
+            'EPS CAGR (TTM)', 'EPS CAGR (5Y, TTM)', 'EPS CAGR (10Y, TTM)', 
             'Gross Margin (TTM)', 'Trailing PE (TTM)', 'PEG Ratio (TTM)',
             
-            'EPS CAGR (1Y)', 'EPS CAGR (3Y)', 'Net Debt to Equity (Last Quarter)',
+            'EPS CAGR (3Y, TTM)', 'Net Debt to Equity (Last Quarter)',
             'Revenue CAGR (1Y)', 'Revenue CAGR (3Y)', 'Revenue CAGR (5Y)', 'Revenue CAGR (10Y)',
             'Gross Margin (Last Quarter)', 'Gross Margin (FY -1)', 'Gross Margin (FY -3)',
             'ROE (TTM)', 'ROE (FY -3)',
