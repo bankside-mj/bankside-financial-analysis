@@ -7,8 +7,9 @@ import streamlit as st
 from urllib.parse import urlparse, parse_qs, quote, unquote
 
 import pandas as pd
-from main.data.data_layout import DataLayout
+from main.data.data_container import DataContainer
 from main.constants import c_api_text, c_text
+from main.layout.layout_output_data import LayoutOutputData
 from main.util.fetch import fetch_data
 from main.common.common_layout import CommonLayout
 
@@ -75,9 +76,9 @@ class FinancialAnalysis:
         query_params = st.query_params[param_name]
         return query_params
 
-    def _is_valid_input(self, txt):
-        if txt is None or txt.strip(' ') == '':
-            st.error('Please enter at least one ticker.')
+    def _has_ticket(self, txt):
+        if len(txt) == 0:
+            st.error(c_text.ERR__EMPTY_INPUT)
             return False
 
         return True
@@ -88,7 +89,7 @@ class FinancialAnalysis:
             txt = [t.upper().strip() for t in txt]
             txt = list(filter(lambda x: x != '', txt))
         except:
-            st.error('Please use comma as delimiter.')
+            st.error(c_text.ERR__WRONG_DELIMITER)
 
         return txt
 
@@ -120,7 +121,7 @@ class FinancialAnalysis:
 
             # Remove non found ticker
             if len(not_found_ticker_ls) > 0:
-                st.warning(f'The following ticker are not found: {not_found_ticker_ls}')
+                st.warning(f'{c_text.ERR__TICKER_NOT_FOUND}: {not_found_ticker_ls}')
                 self.ticker_ls = list(filter(lambda x: x not in not_found_ticker_ls, self.ticker_ls))
 
     def _fetch_multi_financials(self, ticker, limit=10):
@@ -564,6 +565,9 @@ class FinancialAnalysis:
 
 
     def _build_downloadable_dataframe(self):
+        if len(self.ticker_ls) == 0:
+            return None
+
         basic_header = pd.DataFrame([None], columns=['(A) Basic Info'])
         basic_info_df = pd.DataFrame(self.data_basic_info)
         invest_metrics_header = pd.DataFrame([None], columns=['(B) Investment Metrics'])
@@ -583,35 +587,9 @@ class FinancialAnalysis:
             fin_header, fin_df,
         ], axis=1)
 
-        reorder_columns = [
-            # (A) Basic Info
-            c_text.COMPANY_NAME, c_text.TICKER, c_text.SECTOR, c_text.CCY, c_text.CUR_PRICE, c_text.MKT_CAP, c_text.BETA,
+        raw_data_df = raw_data_df[LayoutOutputData.col_order]
 
-            # (B) Investment Metrics
-            c_text.MIND_SHARE, c_text.MKT_SHARE, c_text.DIV_YIELD_TTM, c_text.CAPEX_NI_TTM, 
-            c_text.CAPEX_NI_5Y_AVG, c_text.CAPEX_NI_10Y_AVG,
-            c_text.EPS_CAGR_TTM, c_text.EPS_CAGR_5Y_TTM, c_text.EPS_CAGR_10Y_TTM, 
-            c_text.GM_TTM, c_text.TRAILING_PE_TTM, c_text.PEG_R_TTM,
-            
-            c_text.EPS_CAGR_3Y_TTM, c_text.NDTE_LAST_Q,
-            c_text.REV_CAGR_1Y, c_text.REV_CAGR_3Y, c_text.REV_CAGR_5Y, c_text.REV_CAGR_10Y,
-            c_text.GM_LAST_Q, c_text.GM_FY1, c_text.GM_FY3,
-            c_text.ROE_TTM, c_text.ROE_FY3,
-
-            # (C) Investment Metrics
-            c_text.RR_LAST_FY, c_text.IR_LAST_FY,
-
-            # (D) Valuation
-            c_text.PEG_R_FY1, c_text.PEG_R_FY3,
-
-            # (E) Financial Ratio
-            c_text.TOT_REV_LAST_Q, c_text.GP_LAST_Q,
-            c_text.CAPEX_LAST_Y, c_text.NI_TTM, c_text.NI_LAST_Y, c_text.NI_LAST_Q,
-            c_text.EPS_TTM, c_text.LAST_EX_DIV_DT, c_text.LAST_DIV_VAL, c_text.PR_TTM, c_text.ROIC,
-            c_text.NEXT_EARN_DATE, c_text.NEXT_EARN_EST_EPS, c_text.NEXT_EARN_EST_REV, c_text.BEAT_EST, c_text.BEST_EST_LAST_UPDATE,
-        ]
-        raw_data_df = raw_data_df[reorder_columns]
-
+        # Display Raw Data
         st.dataframe(raw_data_df)
 
         # Option to download the table
@@ -631,46 +609,70 @@ class FinancialAnalysis:
         href_excel = f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64_excel}" download="{filename}">Download as Formatted Excel file</a>'
         st.markdown(href_excel, unsafe_allow_html=True)
 
-    def _get_query(self):
-        if not self._is_valid_input(self.ticker_ls):
-            return None
+    def _get_query(self, data_layout_ls):
+        # Process Data
+        for data_layout in data_layout_ls:
+            data_layout.batch_process_ticker()
 
-        self.ticker_ls = self._split_input(self.ticker_ls)
+        self.ticker_ls = []
+        for data_layout in data_layout_ls:
+            self.ticker_ls.extend(data_layout.master_ticker_ls)
+        
+        st.json({'ticker_ls': self.ticker_ls})
+        
+        if not self._has_ticket(self.ticker_ls):
+            return None
+        
         
         # Retrieve data
         self._get_raw_financials_statement()
-        
+
+        # Calculate data
         self._get_basic_info()
         self._get_investment_metrics()
         self._get_investment_risk()
         self._get_valuation()
         self._get_fin()
 
-
-
     def _preload(self):
         CommonLayout.load()
 
-        st.title("Financial Analysis")
+        st.title(c_text.TITLE__FINANCIAL_ANALYSIS)
 
-        # us_tab, cn_tab, jp_tab = st.tabs(["US", "CN", "JP"])
+        us_tab, cn_tab, jp_tab = st.tabs([c_text.LABEL__US, c_text.LABEL__CN, c_text.LABEL__JP])
 
-        # us_data_layout = DataLayout()
-        # cn_data_layout = DataLayout()
-        # jp_data_layout = DataLayout()
+        us_data_layout = DataContainer()
+        cn_data_layout = DataContainer()
+        jp_data_layout = DataContainer()
+        data_layout_ls = [us_data_layout, cn_data_layout, jp_data_layout]
 
-        # with us_tab:
-        #     us_data_layout.input_ticker__value = st.text_input(c_text.INPUT_HINT__TICKER, value=us_data_layout.input_ticker__value)
+        with us_tab:
+            st.markdown(c_text.INPUT_HINT__TICKER)
+            us_data_layout.input_ticker__value = st.text_input(c_text.LABEL__VALUE_STOCK, value=us_data_layout.input_ticker__value, key='us_value_stock')
+            us_data_layout.input_ticker__growth = st.text_input(c_text.LABEL__GROWTH_STOCK, value=us_data_layout.input_ticker__growth, key='us_growth_stock')
+            us_data_layout.input_ticker__theme = st.text_input(c_text.LABEL__THEME_STOCK, value=us_data_layout.input_ticker__theme, key='us_theme_stock')
+            us_data_layout.input_ticker__watchlist = st.text_input(c_text.LABEL__WATCHLIST_STOCK, value=us_data_layout.input_ticker__watchlist, key='us_watchlist_stock')
 
-        default_value = self._get_query_parameter('tickers')
-        if default_value:
-            default_value = unquote(default_value)
+        with cn_tab:
+            st.markdown(c_text.INPUT_HINT__TICKER)
+            cn_data_layout.input_ticker__value = st.text_input(c_text.LABEL__VALUE_STOCK, value=cn_data_layout.input_ticker__value, key='cn_value_stock')
+            cn_data_layout.input_ticker__growth = st.text_input(c_text.LABEL__GROWTH_STOCK, value=cn_data_layout.input_ticker__growth, key='cn_growth_stock')
+            cn_data_layout.input_ticker__theme = st.text_input(c_text.LABEL__THEME_STOCK, value=cn_data_layout.input_ticker__theme, key='cn_theme_stock')
+            cn_data_layout.input_ticker__watchlist = st.text_input(c_text.LABEL__WATCHLIST_STOCK, value=cn_data_layout.input_ticker__watchlist, key='cn_watchlist_stock')
 
-        self.ticker_ls = st.text_input(c_text.INPUT_HINT__TICKER, value=default_value)
+        with jp_tab:
+            st.markdown(c_text.INPUT_HINT__TICKER)
+            jp_data_layout.input_ticker__value = st.text_input(c_text.LABEL__VALUE_STOCK, value=jp_data_layout.input_ticker__value, key='jp_value_stock')
+            jp_data_layout.input_ticker__growth = st.text_input(c_text.LABEL__GROWTH_STOCK, value=jp_data_layout.input_ticker__growth, key='jp_growth_stock')
+            jp_data_layout.input_ticker__theme = st.text_input(c_text.LABEL__THEME_STOCK, value=jp_data_layout.input_ticker__theme, key='jp_theme_stock')
+            jp_data_layout.input_ticker__watchlist = st.text_input(c_text.LABEL__WATCHLIST_STOCK, value=jp_data_layout.input_ticker__watchlist, key='jp_watchlist_stock')
 
-        if st.button('Submit'):
-            self._get_query()
+        if st.button(c_text.LABEL__SUBMIT):
+            st.divider()
+            self._get_query(data_layout_ls)
             self._build_downloadable_dataframe()
+
+
 
     def main(self):
         load_dotenv()

@@ -1,4 +1,24 @@
-INPUT_HINT__TICKER = "Enter FMP ticker, separate with comma"
+# Layout
+INPUT_HINT__TICKER = "Hint - Enter FMP ticker, separate with comma"
+
+ERR__EMPTY_INPUT = 'Please enter at least one ticker.'
+ERR__WRONG_DELIMITER = 'Please use comma as delimiter.'
+ERR__TICKER_NOT_FOUND = 'The following ticker are not found'
+
+LABEL__CN = 'China'
+LABEL__US = 'United States'
+LABEL__JP = 'Japan'
+
+LABEL__VALUE_STOCK = 'Value Stock'
+LABEL__GROWTH_STOCK = 'Growth Stock'
+LABEL__THEME_STOCK = 'Theme Stock'
+LABEL__WATCHLIST_STOCK = 'Watchlist Stock'
+
+LABEL__SUBMIT = 'Submit'
+
+TITLE__FINANCIAL_ANALYSIS = 'Financial Analysis'
+
+
 
 # CAPEX / Net Income
 CAPEX_NI_TTM = 'CAPEX / Net Income (TTM)'
