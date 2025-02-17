@@ -18,7 +18,10 @@ LABEL__SUBMIT = 'Submit'
 
 TITLE__FINANCIAL_ANALYSIS = 'Financial Analysis'
 
-
+COND__DIV = 'Div >'
+COND__CAPEX = 'CAPEX within'
+COND__EPS = 'EPS above'
+COND__GM = 'Gross Margin >'
 
 # CAPEX / Net Income
 CAPEX_NI_TTM = 'CAPEX / Net Income (TTM)'

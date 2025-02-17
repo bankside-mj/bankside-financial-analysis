@@ -11,6 +11,7 @@ from main.constants import c_text
 from main.data.data_container import DataContainer
 from main.layout.layout_output_data import LayoutOutputData
 from main.layout.layout_output_format_data import LayoutOutputDataFormat
+from openpyxl.utils import get_column_letter
 
 class Writer:
     
@@ -44,7 +45,6 @@ class Writer:
             
             sheet_df = pd.concat(sheet_df_ls)
             sheet_df.reset_index(drop=True, inplace=True)
-            st.dataframe(sheet_df)
 
             # If is value stock, reorder the columns
             if sheetname == c_text.LABEL__VALUE_STOCK:
@@ -99,7 +99,7 @@ class Writer:
             )
 
             # Apply the border to all used cells
-            for row in ws.iter_rows(min_row=1, max_row=len(data_container.master_ticker_ls) + 1, min_col=1, max_col=len(LayoutOutputData.col_order)):
+            for row in ws.iter_rows(min_row=1, max_row=len(data_container.master_ticker_ls) + 1, min_col=1, max_col=43):
                 for cell in row:
                     cell.border = border_style
 
@@ -107,11 +107,19 @@ class Writer:
             header_row = 1
             header_col = 1
 
-            for row in ws.iter_rows(min_row=1, max_row=1, min_col=1, max_col=ws.max_column):
+            for row in ws.iter_rows(min_row=1, max_row=1, min_col=1, max_col=43):
                 for cell in row:
                     cell.alignment = Alignment(wrap_text=True, horizontal='center', vertical='center')
                     cell.font = Font(bold=True)
                     cell.fill = PatternFill(start_color="D9D9D9", end_color="D9D9D9", fill_type="solid")
+
+            # Set column width
+            ws.column_dimensions[get_column_letter(1)].width = 20.11
+            ws.column_dimensions[get_column_letter(2)].width = 18
+            for c in range(3, 44):
+                col_letter = get_column_letter(c)
+                ws.column_dimensions[col_letter].width = 8.11
+            ws.row_dimensions[1].height = 57.5
             
             # Copy and paste the header and rename it
             out_header_ls = []
@@ -123,11 +131,10 @@ class Writer:
             if len(data_container.jp_ticker_ls) > 0:
                 out_header_ls.append([f'JP {term}', len(data_container.jp_ticker_ls)])
 
+            # Insert the header to rest of the country
             to_insert_row = 0
             for i, (label, tot_len) in enumerate(out_header_ls):
-                st.markdown(f'{label}, row={to_insert_row}, tot_len={tot_len}')
                 if i == 0:
-
                     header_cell = ws.cell(row=header_row, column=header_col)
                     header_cell.value = label
                     to_insert_row += tot_len + 2
@@ -179,6 +186,8 @@ class Writer:
                         )
 
                         cell_target.number_format = cell_source.number_format
+                    
+                    ws.row_dimensions[to_insert_row].height = ws.row_dimensions[header_row].height
 
                     header_cell = ws.cell(row=to_insert_row, column=header_col)
                     header_cell.value = label

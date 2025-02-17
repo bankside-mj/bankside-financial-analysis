@@ -572,18 +572,19 @@ class FinancialAnalysis:
         raw_data_df = raw_data_df[LayoutOutputData.col_order]
 
         # Display Raw Data
+        with st.spinner('Preparing output...'):
+            # Format Table
+            fmt_data_df = self._format_column(raw_data_df)  # Format huge number to K, B, M, T
+            excel = Writer.convert_df_to_excel(fmt_data_df,
+                                            self.data_layout_dict)
+
+            # Option to download the table
+            fmt_dt = dt.datetime.now().strftime('%Y-%m-%d')
+            filename = f"financial_data_formatted__{fmt_dt.replace(' ', '_')}.xlsx"
+            b64_excel = base64.b64encode(excel).decode()
+            href_excel = f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64_excel}" download="{filename}">Download as Formatted Excel file</a>'
+        
         st.dataframe(raw_data_df)
-
-        # Format Table
-        fmt_data_df = self._format_column(raw_data_df)  # Format huge number to K, B, M, T
-        excel = Writer.convert_df_to_excel(fmt_data_df,
-                                           self.data_layout_dict)
-
-        # Option to download the table
-        fmt_dt = dt.datetime.now().strftime('%Y-%m-%d')
-        filename = f"financial_data_formatted__{fmt_dt.replace(' ', '_')}.xlsx"
-        b64_excel = base64.b64encode(excel).decode()
-        href_excel = f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64_excel}" download="{filename}">Download as Formatted Excel file</a>'
         st.markdown(href_excel, unsafe_allow_html=True)
 
     def _get_query(self, data_layout_dict):
