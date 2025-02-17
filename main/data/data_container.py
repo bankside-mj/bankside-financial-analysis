@@ -4,15 +4,13 @@ from main.constants import c_text
 
 
 class DataContainer:
-    input_ticker__value = ''
-    input_ticker__growth = ''
-    input_ticker__theme = ''
-    input_ticker__watchlist = ''
+    input_ticker__us = ''
+    input_ticker__cn = ''
+    input_ticker__jp = ''
 
-    value_ticker_ls = []
-    growth_ticker_ls = []
-    theme_ticker_ls = []
-    watchlist_ticker_ls = []
+    us_ticker_ls = []
+    cn_ticker_ls = []
+    jp_ticker_ls = []
     master_ticker_ls = []
 
     def __init__(self):
@@ -29,23 +27,20 @@ class DataContainer:
         return len(self.master_ticker_ls) == 0
 
     def batch_process_ticker(self):
-        self.value_ticker_ls = self._split_input(self.input_ticker__value)
-        self.growth_ticker_ls = self._split_input(self.input_ticker__growth)
-        self.theme_ticker_ls = self._split_input(self.input_ticker__theme)
-        self.watchlist_ticker_ls = self._split_input(self.input_ticker__watchlist)
+        self.cn_ticker_ls = self._split_input(self.input_ticker__cn)
+        self.us_ticker_ls = self._split_input(self.input_ticker__us)
+        self.jp_ticker_ls = self._split_input(self.input_ticker__jp)
 
-        self.master_ticker_ls = self.value_ticker_ls + self.growth_ticker_ls + self.theme_ticker_ls + self.watchlist_ticker_ls
-        self.master_ticker_ls = list(dict.fromkeys(self.master_ticker_ls))    
+        self.master_ticker_ls = self.cn_ticker_ls + self.us_ticker_ls + self.jp_ticker_ls
+        self.master_ticker_ls = list(dict.fromkeys(self.master_ticker_ls))
 
     def __repr__(self):
         return f'''
-        VALUE_TICKER={self.input_ticker__value},
-        GROWTH_TICKER={self.input_ticker__growth},
-        THEME_TICKER={self.input_ticker__theme},
-        WATCHLIST_TICKER={self.input_ticker__watchlist},
+        CN_TICKER={self.input_ticker__cn},
+        US_TICKER={self.input_ticker__us},
+        JP_TICKER={self.input_ticker__jp},
 
-        VALUE_TICKER_LS={self.value_ticker_ls},
-        GROWTH_TICKER_LS={self.growth_ticker_ls},
-        THEME_TICKER_LS={self.theme_ticker_ls},
-        WATCHLIST_TICKER_LS={self.watchlist_ticker_ls},
+        CN_TICKER_LS={self.cn_ticker_ls},
+        US_TICKER_LS={self.us_ticker_ls},
+        JP_TICKER_LS={self.jp_ticker_ls},
         '''

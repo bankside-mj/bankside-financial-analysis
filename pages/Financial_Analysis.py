@@ -69,12 +69,12 @@ class FinancialAnalysis:
             c_text.NI_LAST_Q, c_text.NI_LAST_Y, c_text.NI_TTM,
         ]
 
-    def _get_query_parameter(self, param_name):
-        if param_name not in st.query_params.keys():
-            return None
+    # def _get_query_parameter(self, param_name):
+    #     if param_name not in st.query_params.keys():
+    #         return None
         
-        query_params = st.query_params[param_name]
-        return query_params
+    #     query_params = st.query_params[param_name]
+    #     return query_params
 
     def _has_ticket(self, txt):
         if len(txt) == 0:
@@ -611,6 +611,8 @@ class FinancialAnalysis:
         self.ticker_ls = []
         for data_layout in data_layout_dict.values():
             self.ticker_ls.extend(data_layout.master_ticker_ls)
+
+        st.json(data_layout_dict)
                 
         if not self._has_ticket(self.ticker_ls):
             return None
@@ -631,37 +633,45 @@ class FinancialAnalysis:
 
         st.title(c_text.TITLE__FINANCIAL_ANALYSIS)
 
-        us_tab, cn_tab, jp_tab = st.tabs([c_text.LABEL__US, c_text.LABEL__CN, c_text.LABEL__JP])
+        value_tab, growth_tab, theme_tab, watchlist_tab = st.tabs([c_text.LABEL__VALUE_STOCK, c_text.LABEL__GROWTH_STOCK,
+                                                                   c_text.LABEL__THEME_STOCK, c_text.LABEL__WATCHLIST_STOCK])
 
-        us_data_layout = DataContainer()
-        cn_data_layout = DataContainer()
-        jp_data_layout = DataContainer()
+        value_data_layout = DataContainer()
+        growth_data_layout = DataContainer()
+        theme_data_layout = DataContainer()
+        watchlist_data_layout = DataContainer()
+
         self.data_layout_dict = {
-            c_text.LABEL__US: us_data_layout, 
-            c_text.LABEL__CN: cn_data_layout, 
-            c_text.LABEL__JP: jp_data_layout
+            c_text.LABEL__VALUE_STOCK: value_data_layout, 
+            c_text.LABEL__GROWTH_STOCK: growth_data_layout, 
+            c_text.LABEL__THEME_STOCK: theme_data_layout,
+            c_text.LABEL__WATCHLIST_STOCK: watchlist_data_layout,
         }
 
-        with us_tab:
+        with value_tab:
             st.markdown(c_text.INPUT_HINT__TICKER)
-            us_data_layout.input_ticker__value = st.text_input(c_text.LABEL__VALUE_STOCK, value=us_data_layout.input_ticker__value, key='us_value_stock')
-            us_data_layout.input_ticker__growth = st.text_input(c_text.LABEL__GROWTH_STOCK, value=us_data_layout.input_ticker__growth, key='us_growth_stock')
-            us_data_layout.input_ticker__theme = st.text_input(c_text.LABEL__THEME_STOCK, value=us_data_layout.input_ticker__theme, key='us_theme_stock')
-            us_data_layout.input_ticker__watchlist = st.text_input(c_text.LABEL__WATCHLIST_STOCK, value=us_data_layout.input_ticker__watchlist, key='us_watchlist_stock')
+            value_data_layout.input_ticker__us = st.text_input(c_text.LABEL__US, value=value_data_layout.input_ticker__us, key='value_stock__us')
+            value_data_layout.input_ticker__cn = st.text_input(c_text.LABEL__CN, value=value_data_layout.input_ticker__cn, key='value_stock__cn')
+            value_data_layout.input_ticker__jp = st.text_input(c_text.LABEL__JP, value=value_data_layout.input_ticker__jp, key='value_stock__jp')
 
-        with cn_tab:
+        with growth_tab:
             st.markdown(c_text.INPUT_HINT__TICKER)
-            cn_data_layout.input_ticker__value = st.text_input(c_text.LABEL__VALUE_STOCK, value=cn_data_layout.input_ticker__value, key='cn_value_stock')
-            cn_data_layout.input_ticker__growth = st.text_input(c_text.LABEL__GROWTH_STOCK, value=cn_data_layout.input_ticker__growth, key='cn_growth_stock')
-            cn_data_layout.input_ticker__theme = st.text_input(c_text.LABEL__THEME_STOCK, value=cn_data_layout.input_ticker__theme, key='cn_theme_stock')
-            cn_data_layout.input_ticker__watchlist = st.text_input(c_text.LABEL__WATCHLIST_STOCK, value=cn_data_layout.input_ticker__watchlist, key='cn_watchlist_stock')
+            growth_data_layout.input_ticker__us = st.text_input(c_text.LABEL__US, value=growth_data_layout.input_ticker__us, key='growth_stock__us')
+            growth_data_layout.input_ticker__cn = st.text_input(c_text.LABEL__CN, value=growth_data_layout.input_ticker__cn, key='growth_stock__cn')
+            growth_data_layout.input_ticker__jp = st.text_input(c_text.LABEL__JP, value=growth_data_layout.input_ticker__jp, key='growth_stock__jp')
 
-        with jp_tab:
+        with theme_tab:
             st.markdown(c_text.INPUT_HINT__TICKER)
-            jp_data_layout.input_ticker__value = st.text_input(c_text.LABEL__VALUE_STOCK, value=jp_data_layout.input_ticker__value, key='jp_value_stock')
-            jp_data_layout.input_ticker__growth = st.text_input(c_text.LABEL__GROWTH_STOCK, value=jp_data_layout.input_ticker__growth, key='jp_growth_stock')
-            jp_data_layout.input_ticker__theme = st.text_input(c_text.LABEL__THEME_STOCK, value=jp_data_layout.input_ticker__theme, key='jp_theme_stock')
-            jp_data_layout.input_ticker__watchlist = st.text_input(c_text.LABEL__WATCHLIST_STOCK, value=jp_data_layout.input_ticker__watchlist, key='jp_watchlist_stock')
+            theme_data_layout.input_ticker__us = st.text_input(c_text.LABEL__US, value=theme_data_layout.input_ticker__us, key='theme_stock__us')
+            theme_data_layout.input_ticker__cn = st.text_input(c_text.LABEL__CN, value=theme_data_layout.input_ticker__cn, key='theme_stock__cn')
+            theme_data_layout.input_ticker__jp = st.text_input(c_text.LABEL__JP, value=theme_data_layout.input_ticker__jp, key='theme_stock__jp')
+
+        with watchlist_tab:
+            st.markdown(c_text.INPUT_HINT__TICKER)
+            watchlist_data_layout.input_ticker__us = st.text_input(c_text.LABEL__US, value=watchlist_data_layout.input_ticker__us, key='watchlist_stock__us')
+            watchlist_data_layout.input_ticker__cn = st.text_input(c_text.LABEL__CN, value=watchlist_data_layout.input_ticker__cn, key='watchlist_stock__cn')
+            watchlist_data_layout.input_ticker__jp = st.text_input(c_text.LABEL__JP, value=watchlist_data_layout.input_ticker__jp, key='watchlist_stock__jp')
+
 
         if st.button(c_text.LABEL__SUBMIT):
             st.divider()
