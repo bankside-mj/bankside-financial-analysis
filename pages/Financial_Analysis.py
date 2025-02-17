@@ -10,6 +10,7 @@ import pandas as pd
 from main.data.data_container import DataContainer
 from main.constants import c_api_text, c_text
 from main.layout.layout_output_data import LayoutOutputData
+from main.layout.layout_output_format_data import LayoutOutputDataFormat
 from main.util.fetch import fetch_data
 from main.common.common_layout import CommonLayout
 
@@ -47,27 +48,6 @@ class FinancialAnalysis:
         # Storing data
         self.raw_basic_info = defaultdict(dict)
         self.data_raw_financials = defaultdict(dict)
-
-        self.pct_col_ls = [
-            c_text.GM_LAST_Q, c_text.GM_TTM, c_text.GM_FY1, c_text.GM_FY3, c_text.GM_FY5, c_text.GM_FY10,
-            c_text.EPS_CAGR_TTM, c_text.EPS_CAGR_3Y_TTM, c_text.EPS_CAGR_5Y_TTM, c_text.EPS_CAGR_10Y_TTM,
-            c_text.REV_CAGR_1Y, c_text.REV_CAGR_3Y, c_text.REV_CAGR_5Y, c_text.REV_CAGR_10Y,
-            c_text.ROE_TTM, c_text.ROE_FY1, c_text.ROE_FY3, c_text.ROE_FY5, c_text.ROE_FY10,
-            c_text.DIV_YIELD_TTM, c_text.PR_TTM,
-            c_text.CAPEX_NI_TTM, c_text.CAPEX_NI_5Y_AVG, c_text.CAPEX_NI_10Y_AVG,
-            c_text.NDTE_LAST_Q, c_text.RR_LAST_FY, c_text.IR_LAST_FY,
-            c_text.BEAT_EST, c_text.ROIC,
-        ]
-        self.num_col_ls = [
-            c_text.CUR_PRICE, c_text.BETA,
-            c_text.TRAILING_PE_TTM, c_text.PEG_R_TTM, c_text.PEG_R_FY1, c_text.PEG_R_FY3,
-            c_text.EPS_TTM, c_text.LAST_DIV_VAL, c_text.NEXT_EARN_EST_EPS,
-        ]
-        self.txt_col_ls = [
-            c_text.MKT_CAP, c_text.TOT_REV_LAST_Q, c_text.GP_LAST_Q,
-            c_text.CAPEX_LAST_Y, c_text.NEXT_EARN_EST_REV,
-            c_text.NI_LAST_Q, c_text.NI_LAST_Y, c_text.NI_TTM,
-        ]
 
     # def _get_query_parameter(self, param_name):
     #     if param_name not in st.query_params.keys():
@@ -517,7 +497,9 @@ class FinancialAnalysis:
                 est_eps = self._get_latest_value(ticker, EARNINGS_CAL, c_api_text.FMP_EPS_EST, is_est=False)
                 act_eps = self._get_latest_value(ticker, EARNINGS_CAL, c_api_text.FMP_EPS_ACT, is_est=False)
                 act_eps_update_date = self._get_latest_value(ticker, EARNINGS_CAL, c_api_text.FMP_DT, is_est=False)
-                beat_estimate = self._safe_div(act_eps, est_eps) - 1.0
+                beat_estimate = self._safe_div(act_eps, est_eps)
+                if beat_estimate is not None:
+                    beat_estimate -= 1.0
 
                 # ROIC (Return on Investment Capital)
                 ebit_ttm = sum([
@@ -547,7 +529,7 @@ class FinancialAnalysis:
                     c_text.NEXT_EARN_EST_EPS: next_earnings_estimate_eps,
                     c_text.NEXT_EARN_EST_REV: next_earnings_estimate_revenue,
                     c_text.BEAT_EST: beat_estimate,
-                    c_text.BEST_EST_LAST_UPDATE: act_eps_update_date,
+                    c_text.BEAT_EST_LAST_UPDATE: act_eps_update_date,
                 }
 
                 for k, v in metrics.items():
@@ -558,7 +540,7 @@ class FinancialAnalysis:
     def _format_column(self, df: pd.DataFrame):
         copy_df = df.copy()
         for col in copy_df.columns.tolist():
-            if col in self.txt_col_ls:
+            if col in LayoutOutputDataFormat.txt_col_ls:
                 copy_df[col] = copy_df[col].apply(Formatter.format_number)
 
         return copy_df
@@ -593,8 +575,9 @@ class FinancialAnalysis:
         st.dataframe(raw_data_df)
 
         # Format Table
-        fmt_data_df = self._format_column(raw_data_df)
-        excel = Writer.convert_df_to_excel(fmt_data_df, self.data_layout_dict, percentage_columns=self.pct_col_ls, decimal_columns=self.num_col_ls)
+        fmt_data_df = self._format_column(raw_data_df)  # Format huge number to K, B, M, T
+        excel = Writer.convert_df_to_excel(fmt_data_df,
+                                           self.data_layout_dict)
 
         # Option to download the table
         fmt_dt = dt.datetime.now().strftime('%Y-%m-%d')
@@ -611,8 +594,6 @@ class FinancialAnalysis:
         self.ticker_ls = []
         for data_layout in data_layout_dict.values():
             self.ticker_ls.extend(data_layout.master_ticker_ls)
-
-        st.json(data_layout_dict)
                 
         if not self._has_ticket(self.ticker_ls):
             return None

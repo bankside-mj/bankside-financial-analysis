@@ -63,8 +63,8 @@ ROE_FY10 = 'ROE (FY -10)'
 
 # Miscellaneous
 BEAT_EST = 'Beat Estimate'
-BEST_EST_LAST_UPDATE = 'Beat Estimate (Updated On)'
-BETA = 'Beta'
+BEAT_EST_LAST_UPDATE = 'Beat Estimate (Updated On)'
+BETA = 'Beta (5Y)'
 CAPEX_LAST_Y = 'Capital Expenditure (Last Year)'
 CCY = 'Currency'
 COMPANY_NAME = 'Company Name'
