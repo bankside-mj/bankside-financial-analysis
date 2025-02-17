@@ -348,10 +348,10 @@ class FinancialAnalysis:
         ni_prev_3q = self._get_latest_value(ticker, QUAR_INCOME, c_api_text.FMP_NI, idx=2)
         ni_prev_4q = self._get_latest_value(ticker, QUAR_INCOME, c_api_text.FMP_NI, idx=3)
         
-        se_prev_4q = self._get_latest_value(ticker, QUAR_BALANCE, c_api_text.FMP_TOT_EQ, idx=3)
+        se_prev_1q = self._get_latest_value(ticker, QUAR_BALANCE, c_api_text.FMP_TOT_EQ, idx=0)
 
         # Calculation
-        roe_ttm = self._safe_div(ni_prev_1q + ni_prev_2q + ni_prev_3q + ni_prev_4q, se_prev_4q)
+        roe_ttm = self._safe_div(ni_prev_1q + ni_prev_2q + ni_prev_3q + ni_prev_4q, se_prev_1q)
         roe_prev_1y = self._safe_div(ni_prev_1y, se_prev_1y)
         roe_prev_3y = self._safe_div(ni_prev_3y, se_prev_3y)
         roe_prev_5y = self._safe_div(ni_prev_5y, se_prev_5y)
