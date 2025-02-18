@@ -628,13 +628,59 @@ class FinancialAnalysis:
 
         st.title(c_text.TITLE__FINANCIAL_ANALYSIS)
 
-        value_tab, growth_tab, theme_tab, watchlist_tab = st.tabs([c_text.LABEL__VALUE_STOCK, c_text.LABEL__GROWTH_STOCK,
-                                                                   c_text.LABEL__THEME_STOCK, c_text.LABEL__WATCHLIST_STOCK])
-
         value_data_layout = DataContainer()
         growth_data_layout = DataContainer()
         theme_data_layout = DataContainer()
         watchlist_data_layout = DataContainer()
+
+        # Initialize session state
+        if "auth_success" not in st.session_state:
+            st.session_state.auth_success = False
+        if "show_popup" not in st.session_state:
+            st.session_state.show_popup = False
+
+        # Function to validate password
+        def validate_password():
+            if st.session_state.password_input == os.getenv('PRELOAD_PWD'):
+                st.session_state.auth_success = True
+                st.session_state.show_popup = False  # Hide the popup
+                st.toast("Access Granted!", icon="✅")
+            else:
+                st.toast("Incorrect password. Try again.", icon="❌")
+
+        def hide_password_input():
+            st.session_state.show_popup = False
+
+        # Button to trigger the password popup
+        if st.button("Pre-load ticker with authorisation"):
+            st.session_state.show_popup = True  # Show password input
+
+        # Display password popup (simulated modal)
+        if st.session_state.show_popup:
+            st.button("Hide authorisation", on_click=hide_password_input)
+            st.text_input("Enter Password:", type="password", key="password_input", on_change=validate_password)
+
+        # Prepopulate input field if authenticated
+        if st.session_state.auth_success:
+            value_data_layout.input_ticker__us = os.getenv('VALUE__US_TICKERS')
+            value_data_layout.input_ticker__cn = os.getenv('VALUE__CN_TICKERS')
+            value_data_layout.input_ticker__jp = os.getenv('VALUE__JP_TICKERS')
+
+            growth_data_layout.input_ticker__us = os.getenv('GROWTH__US_TICKERS')
+            growth_data_layout.input_ticker__cn = os.getenv('GROWTH__CN_TICKERS')
+            growth_data_layout.input_ticker__jp = os.getenv('GROWTH__JP_TICKERS')
+
+            theme_data_layout.input_ticker__us = os.getenv('THEME__US_TICKERS')
+            theme_data_layout.input_ticker__cn = os.getenv('THEME__CN_TICKERS')
+            theme_data_layout.input_ticker__jp = os.getenv('THEME__JP_TICKERS')
+
+            watchlist_data_layout.input_ticker__us = os.getenv('WATCHLIST__US_TICKERS')
+            watchlist_data_layout.input_ticker__cn = os.getenv('WATCHLIST__CN_TICKERS')
+            watchlist_data_layout.input_ticker__jp = os.getenv('WATCHLIST__JP_TICKERS')
+
+
+        value_tab, growth_tab, theme_tab, watchlist_tab = st.tabs([c_text.LABEL__VALUE_STOCK, c_text.LABEL__GROWTH_STOCK,
+                                                                   c_text.LABEL__THEME_STOCK, c_text.LABEL__WATCHLIST_STOCK])
 
         self.data_layout_dict = {
             c_text.LABEL__VALUE_STOCK: value_data_layout, 
