@@ -1,5 +1,6 @@
 from collections import defaultdict
 import datetime as dt
+from typing import Dict
 from dotenv import load_dotenv
 import os
 import re
@@ -55,6 +56,7 @@ class FinancialAnalysis:
             c_text.LABEL__CN: None,
             c_text.LABEL__JP: None,
         }
+        self.data_layout_dict: Dict[str, DataContainer] = {}
 
     # def _get_query_parameter(self, param_name):
     #     if param_name not in st.query_params.keys():
@@ -110,6 +112,11 @@ class FinancialAnalysis:
             if len(not_found_ticker_ls) > 0:
                 st.warning(f'{c_text.ERR__TICKER_NOT_FOUND}: {not_found_ticker_ls}')
                 self.ticker_ls = list(filter(lambda x: x not in not_found_ticker_ls, self.ticker_ls))
+
+                for k, v in self.data_layout_dict.items():
+                    v.us_ticker_ls = list(filter(lambda x: x not in not_found_ticker_ls, v.us_ticker_ls))
+                    v.cn_ticker_ls = list(filter(lambda x: x not in not_found_ticker_ls, v.cn_ticker_ls))
+                    v.jp_ticker_ls = list(filter(lambda x: x not in not_found_ticker_ls, v.jp_ticker_ls))
 
     def _fetch_multi_financials(self, ticker, limit=10):
         result = defaultdict(dict)
@@ -590,16 +597,16 @@ class FinancialAnalysis:
             b64_excel = base64.b64encode(excel).decode()
             href_excel = f'<a href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{b64_excel}" download="{filename}">Download as Formatted Excel file</a>'
         
-        st.dataframe(raw_data_df)
-        st.markdown(href_excel, unsafe_allow_html=True)
+            st.dataframe(raw_data_df)
+            st.markdown(href_excel, unsafe_allow_html=True)
 
-    def _get_query(self, data_layout_dict):
+    def _get_query(self):
         # Process Data
-        for data_layout in data_layout_dict.values():
+        for data_layout in self.data_layout_dict.values():
             data_layout.batch_process_ticker()
 
         self.ticker_ls = []
-        for data_layout in data_layout_dict.values():
+        for data_layout in self.data_layout_dict.values():
             self.ticker_ls.extend(data_layout.master_ticker_ls)
                 
         if not self._has_ticket(self.ticker_ls):
@@ -660,48 +667,50 @@ class FinancialAnalysis:
             watchlist_data_layout.input_ticker__cn = st.text_input(c_text.LABEL__CN, value=watchlist_data_layout.input_ticker__cn, key='watchlist_stock__cn')
             watchlist_data_layout.input_ticker__jp = st.text_input(c_text.LABEL__JP, value=watchlist_data_layout.input_ticker__jp, key='watchlist_stock__jp')
 
-        st.divider()
-        st.markdown(f'### {c_text.INPUT_HINT__COND}')
+        # st.divider()
+        st.markdown(f'#### {c_text.INPUT_HINT__COND}')
 
-        us_cond = ConditionContainer(0.04, 0.5, 0.1, 0.4)
-        cn_cond = ConditionContainer(0.05, 0.5, 0.1, 0.4)
-        jp_cond = ConditionContainer(0.04, 0.5, 0.1, 0.4)
+        us_cond = ConditionContainer(0.04, -0.5, 0.1, 0.4)
+        cn_cond = ConditionContainer(0.05, -0.5, 0.1, 0.4)
+        jp_cond = ConditionContainer(0.04, -0.5, 0.1, 0.4)
 
         us_cond_col, cn_cond_col, jp_cond_col = st.columns(3)
         with us_cond_col:
             container = st.container(border=True)
             with container:
-                st.markdown(f'##### {c_text.LABEL__US}')
+                st.markdown(f'**{c_text.LABEL__US}**')
 
                 us_cond.div = st.text_input(c_text.COND__DIV, value=us_cond.div, key='us_cond__div')
                 us_cond.capex = st.text_input(c_text.COND__CAPEX, value=us_cond.capex, key='us_cond__capex')
                 us_cond.eps = st.text_input(c_text.COND__EPS, value=us_cond.eps, key='us_cond__eps')
                 us_cond.gm = st.text_input(c_text.COND__GM, value=us_cond.gm, key='us_cond__gm')
+                us_cond.to_float()
 
         with cn_cond_col:
             container = st.container(border=True)
             with container:
-                st.markdown(f'##### {c_text.LABEL__CN}')
+                st.markdown(f'**{c_text.LABEL__CN}**')
 
                 cn_cond.div = st.text_input(c_text.COND__DIV, value=cn_cond.div, key='cn_cond__div')
                 cn_cond.capex = st.text_input(c_text.COND__CAPEX, value=cn_cond.capex, key='cn_cond__capex')
                 cn_cond.eps = st.text_input(c_text.COND__EPS, value=cn_cond.eps, key='cn_cond__eps')
                 cn_cond.gm = st.text_input(c_text.COND__GM, value=cn_cond.gm, key='cn_cond__gm')
+                cn_cond.to_float()
 
         with jp_cond_col:
             container = st.container(border=True)
             with container:
-                st.markdown(f'##### {c_text.LABEL__JP}')
+                st.markdown(f'**{c_text.LABEL__JP}**')
 
                 jp_cond.div = st.text_input(c_text.COND__DIV, value=jp_cond.div, key='jp_cond__div')
                 jp_cond.capex = st.text_input(c_text.COND__CAPEX, value=jp_cond.capex, key='jp_cond__capex')
                 jp_cond.eps = st.text_input(c_text.COND__EPS, value=jp_cond.eps, key='jp_cond__eps')
                 jp_cond.gm = st.text_input(c_text.COND__GM, value=jp_cond.gm, key='jp_cond__gm')
-
+                jp_cond.to_float()
 
         if st.button(c_text.LABEL__SUBMIT):
             st.divider()
-            self._get_query(self.data_layout_dict)
+            self._get_query()
             self.fmt_condition = {
                 c_text.LABEL__US: us_cond,
                 c_text.LABEL__CN: cn_cond,

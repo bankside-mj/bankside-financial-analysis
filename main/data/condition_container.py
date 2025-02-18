@@ -4,3 +4,9 @@ class ConditionContainer:
         self.capex: float = capex
         self.eps: float = eps
         self.gm: float = gm
+
+    def to_float(self):
+        self.div = float(self.div)
+        self.capex = float(self.capex)
+        self.eps = float(self.eps)
+        self.gm = float(self.gm)

@@ -1,6 +1,6 @@
 # Layout
 INPUT_HINT__TICKER = "Hint - Enter FMP ticker, separate with comma"
-INPUT_HINT__COND = "Condition Formatting - Please enter in number"
+INPUT_HINT__COND = "Condition Formatting - Please enter in decimal"
 
 ERR__EMPTY_INPUT = 'Please enter at least one ticker.'
 ERR__WRONG_DELIMITER = 'Please use comma as delimiter.'
@@ -23,6 +23,8 @@ COND__DIV = 'Div >'
 COND__CAPEX = 'CAPEX within'
 COND__EPS = 'EPS above'
 COND__GM = 'Gross Margin >'
+COND__VALUE = 'Value'
+COND__GROWTH = 'Growth'
 
 # CAPEX / Net Income
 CAPEX_NI_TTM = 'CAPEX / Net Income (TTM)'
@@ -94,3 +96,4 @@ ROIC = 'ROIC'
 TOT_REV_LAST_Q = 'Total Revenue (Last Quarter)'
 TICKER = 'Ticker'
 SECTOR = 'Sector'
+COND = 'Condition'
