@@ -3,20 +3,21 @@ from typing import Dict
 import pandas as pd
 from io import BytesIO
 
+import streamlit as st
 from openpyxl import load_workbook
 from openpyxl.styles import Alignment, Font, PatternFill, Border, Side
+from openpyxl.utils import get_column_letter
 
-import streamlit as st
 from main.constants import c_text
+from main.data.condition_container import ConditionContainer
 from main.data.data_container import DataContainer
 from main.layout.layout_output_data import LayoutOutputData
 from main.layout.layout_output_format_data import LayoutOutputDataFormat
-from openpyxl.utils import get_column_letter
 
 class Writer:
     
     @classmethod
-    def convert_df_to_excel(self, df: pd.DataFrame, data_layout_dict: Dict[str, DataContainer]):
+    def convert_df_to_excel(self, df: pd.DataFrame, data_layout_dict: Dict[str, DataContainer], fmt_condition: Dict[str, ConditionContainer]):
         output = BytesIO()
         writer = pd.ExcelWriter(output, engine='xlsxwriter')
 
@@ -125,11 +126,16 @@ class Writer:
             out_header_ls = []
             term = sheetname.split(' ')[0]
             if len(data_container.us_ticker_ls) > 0:
-                out_header_ls.append([f'US {term}', len(data_container.us_ticker_ls)])
+                out_header_ls.append([f'{c_text.LABEL__US} {term}', len(data_container.us_ticker_ls)])
             if len(data_container.cn_ticker_ls) > 0:
-                out_header_ls.append([f'CN {term}', len(data_container.cn_ticker_ls)])
+                out_header_ls.append([f'{c_text.LABEL__CN} {term}', len(data_container.cn_ticker_ls)])
             if len(data_container.jp_ticker_ls) > 0:
-                out_header_ls.append([f'JP {term}', len(data_container.jp_ticker_ls)])
+                out_header_ls.append([f'{c_text.LABEL__JP} {term}', len(data_container.jp_ticker_ls)])
+
+            # Conditional formatting
+            if len(data_container.us_ticker_ls) > 0:
+                pass
+
 
             # Insert the header to rest of the country
             to_insert_row = 0
@@ -150,6 +156,7 @@ class Writer:
                         cell.fill = PatternFill(start_color="FFFFFF", end_color="FFFFFF", fill_type="solid")
                 to_insert_row += 1  # Move the header pointer
 
+                # Add the new header
                 for col in range(1, ws.max_column + 1):
                     cell_source = ws.cell(row=header_row, column=col)
                     cell_target = ws.cell(row=to_insert_row, column=col)
@@ -193,6 +200,8 @@ class Writer:
                     header_cell.value = label
                 
                 to_insert_row += tot_len + 1
+
+            
 
 
             # More visual appealing

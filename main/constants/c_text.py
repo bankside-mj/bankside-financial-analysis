@@ -1,5 +1,6 @@
 # Layout
 INPUT_HINT__TICKER = "Hint - Enter FMP ticker, separate with comma"
+INPUT_HINT__COND = "Condition Formatting - Please enter in number"
 
 ERR__EMPTY_INPUT = 'Please enter at least one ticker.'
 ERR__WRONG_DELIMITER = 'Please use comma as delimiter.'

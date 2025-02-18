@@ -7,6 +7,7 @@ import streamlit as st
 from urllib.parse import urlparse, parse_qs, quote, unquote
 
 import pandas as pd
+from main.data.condition_container import ConditionContainer
 from main.data.data_container import DataContainer
 from main.constants import c_api_text, c_text
 from main.layout.layout_output_data import LayoutOutputData
@@ -48,6 +49,12 @@ class FinancialAnalysis:
         # Storing data
         self.raw_basic_info = defaultdict(dict)
         self.data_raw_financials = defaultdict(dict)
+
+        self.fmt_condition = {
+            c_text.LABEL__US: None,
+            c_text.LABEL__CN: None,
+            c_text.LABEL__JP: None,
+        }
 
     # def _get_query_parameter(self, param_name):
     #     if param_name not in st.query_params.keys():
@@ -575,8 +582,7 @@ class FinancialAnalysis:
         with st.spinner('Preparing output...'):
             # Format Table
             fmt_data_df = self._format_column(raw_data_df)  # Format huge number to K, B, M, T
-            excel = Writer.convert_df_to_excel(fmt_data_df,
-                                            self.data_layout_dict)
+            excel = Writer.convert_df_to_excel(fmt_data_df, self.data_layout_dict, self.fmt_condition)
 
             # Option to download the table
             fmt_dt = dt.datetime.now().strftime('%Y-%m-%d')
@@ -654,10 +660,54 @@ class FinancialAnalysis:
             watchlist_data_layout.input_ticker__cn = st.text_input(c_text.LABEL__CN, value=watchlist_data_layout.input_ticker__cn, key='watchlist_stock__cn')
             watchlist_data_layout.input_ticker__jp = st.text_input(c_text.LABEL__JP, value=watchlist_data_layout.input_ticker__jp, key='watchlist_stock__jp')
 
+        st.divider()
+        st.markdown(f'### {c_text.INPUT_HINT__COND}')
+
+        us_cond = ConditionContainer(0.04, 0.5, 0.1, 0.4)
+        cn_cond = ConditionContainer(0.05, 0.5, 0.1, 0.4)
+        jp_cond = ConditionContainer(0.04, 0.5, 0.1, 0.4)
+
+        us_cond_col, cn_cond_col, jp_cond_col = st.columns(3)
+        with us_cond_col:
+            container = st.container(border=True)
+            with container:
+                st.markdown(f'##### {c_text.LABEL__US}')
+
+                us_cond.div = st.text_input(c_text.COND__DIV, value=us_cond.div, key='us_cond__div')
+                us_cond.capex = st.text_input(c_text.COND__CAPEX, value=us_cond.capex, key='us_cond__capex')
+                us_cond.eps = st.text_input(c_text.COND__EPS, value=us_cond.eps, key='us_cond__eps')
+                us_cond.gm = st.text_input(c_text.COND__GM, value=us_cond.gm, key='us_cond__gm')
+
+        with cn_cond_col:
+            container = st.container(border=True)
+            with container:
+                st.markdown(f'##### {c_text.LABEL__CN}')
+
+                cn_cond.div = st.text_input(c_text.COND__DIV, value=cn_cond.div, key='cn_cond__div')
+                cn_cond.capex = st.text_input(c_text.COND__CAPEX, value=cn_cond.capex, key='cn_cond__capex')
+                cn_cond.eps = st.text_input(c_text.COND__EPS, value=cn_cond.eps, key='cn_cond__eps')
+                cn_cond.gm = st.text_input(c_text.COND__GM, value=cn_cond.gm, key='cn_cond__gm')
+
+        with jp_cond_col:
+            container = st.container(border=True)
+            with container:
+                st.markdown(f'##### {c_text.LABEL__JP}')
+
+                jp_cond.div = st.text_input(c_text.COND__DIV, value=jp_cond.div, key='jp_cond__div')
+                jp_cond.capex = st.text_input(c_text.COND__CAPEX, value=jp_cond.capex, key='jp_cond__capex')
+                jp_cond.eps = st.text_input(c_text.COND__EPS, value=jp_cond.eps, key='jp_cond__eps')
+                jp_cond.gm = st.text_input(c_text.COND__GM, value=jp_cond.gm, key='jp_cond__gm')
+
 
         if st.button(c_text.LABEL__SUBMIT):
             st.divider()
             self._get_query(self.data_layout_dict)
+            self.fmt_condition = {
+                c_text.LABEL__US: us_cond,
+                c_text.LABEL__CN: cn_cond,
+                c_text.LABEL__JP: jp_cond,
+            }
+
             self._build_downloadable_dataframe()
 
 
