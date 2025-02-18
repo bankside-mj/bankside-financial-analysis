@@ -708,6 +708,7 @@ class FinancialAnalysis:
                 jp_cond.gm = st.text_input(c_text.COND__GM, value=jp_cond.gm, key='jp_cond__gm')
                 jp_cond.to_float()
 
+
         if st.button(c_text.LABEL__SUBMIT):
             st.divider()
             self._get_query()
@@ -718,8 +719,6 @@ class FinancialAnalysis:
             }
 
             self._build_downloadable_dataframe()
-
-
 
     def main(self):
         load_dotenv()

@@ -19,7 +19,11 @@ class LayoutOutputDataFormat:
     num_one_decim_col_ls = [
         c_text.CUR_PRICE, c_text.BETA,
         c_text.TRAILING_PE_TTM, c_text.PEG_R_TTM, c_text.PEG_R_FY1, c_text.PEG_R_FY3,
-        c_text.EPS_TTM, c_text.LAST_DIV_VAL, c_text.NEXT_EARN_EST_EPS,
+        c_text.EPS_TTM, c_text.NEXT_EARN_EST_EPS,
+    ]
+
+    num_three_decim_col_ls = [
+        c_text.LAST_DIV_VAL,
     ]
 
     txt_col_ls = [

@@ -41,8 +41,8 @@ EPS_CAGR_10Y_TTM = 'EPS CAGR (10Y, TTM)'
 # GM = Gross Margin
 GM_LAST_Q = 'Gross Margin (Last Quarter)'
 GM_TTM = 'Gross Margin (TTM)'
-GM_FY1 = 'Gross Margin (FY -1)'
-GM_FY3 = 'Gross Margin (FY -3)'
+GM_FY1 = 'Gross Margin\n(FY -1)'
+GM_FY3 = 'Gross Margin\n(FY -3)'
 GM_FY5 = 'Gross Margin (FY -5)'
 GM_FY10 = 'Gross Margin (FY -10)'
 
@@ -50,9 +50,9 @@ GM_FY10 = 'Gross Margin (FY -10)'
 TRAILING_PE_TTM = 'Trailing PE (TTM)'
 
 # PEG = Price / Earnings Growth
-PEG_R_TTM = 'PEG Ratio (TTM)'
-PEG_R_FY1 = 'PEG Ratio (FY -1)'
-PEG_R_FY3 = 'PEG Ratio (FY -3)'
+PEG_R_TTM = 'PEG Ratio\n(TTM)'
+PEG_R_FY1 = 'PEG Ratio\n(FY -1)'
+PEG_R_FY3 = 'PEG Ratio\n(FY -3)'
 
 # REV = Revenue
 REV_CAGR_1Y = 'Revenue CAGR (1Y)'
@@ -61,16 +61,16 @@ REV_CAGR_5Y = 'Revenue CAGR (5Y)'
 REV_CAGR_10Y = 'Revenue CAGR (10Y)'
 
 # ROE = Return of Equity
-ROE_TTM = 'ROE (TTM)'
-ROE_FY1 = 'ROE (FY -1)'
-ROE_FY3 = 'ROE (FY -3)'
+ROE_TTM = 'ROE\n(TTM)'
+ROE_FY1 = 'ROE\n(FY -1)'
+ROE_FY3 = 'ROE\n(FY -3)'
 ROE_FY5 = 'ROE (FY -5)'
 ROE_FY10 = 'ROE (FY -10)'
 
 # Miscellaneous
 BEAT_EST = 'Beat Estimate'
 BEAT_EST_LAST_UPDATE = 'Beat Estimate (Updated On)'
-BETA = 'Beta (5Y)'
+BETA = 'Beta\n(5Y)'
 CAPEX_LAST_Y = 'Capital Expenditure (Last Year)'
 CCY = 'Currency'
 COMPANY_NAME = 'Company Name'

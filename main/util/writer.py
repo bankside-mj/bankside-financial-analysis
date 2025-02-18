@@ -152,11 +152,6 @@ class Writer:
             if data_container.is_empty():
                 continue
 
-            # st.json({'data_container': data_container, 'sheetname': sheetname})
-
-            # Build the content for the sheet
-            # empty_df = pd.DataFrame({c: [pd.NA] for c in unique_df.columns.tolist()})
-
             sheet_df_ls = []
             if len(data_container.us_ticker_ls) > 0:
                 sheet_df_ls.append(unique_df.loc[data_container.us_ticker_ls].reset_index())
@@ -184,7 +179,7 @@ class Writer:
 
             percent_format = workbook.add_format({'num_format': '0.0%'})
             one_decimal_format = workbook.add_format({'num_format': '#,##0.0'})
-            two_decimal_format = workbook.add_format({'num_format': '#,##0.00'})
+            three_decimal_format = workbook.add_format({'num_format': '#,##0.000'})
             
             if LayoutOutputDataFormat.pct_col_ls:
                 for col in LayoutOutputDataFormat.pct_col_ls:
@@ -198,6 +193,12 @@ class Writer:
                         col_idx = sheet_df.columns.get_loc(col)
                         worksheet.set_column(col_idx, col_idx, None, one_decimal_format)
 
+            if LayoutOutputDataFormat.num_three_decim_col_ls:
+                for col in LayoutOutputDataFormat.num_three_decim_col_ls:
+                    if col in sheet_df.columns:
+                        col_idx = sheet_df.columns.get_loc(col)
+                        worksheet.set_column(col_idx, col_idx, None, three_decimal_format)
+
         writer.close()
 
         # More customise formatting
@@ -205,6 +206,7 @@ class Writer:
         wb = load_workbook(output)
         for sheetname, data_container in data_layout_dict.items():
             is_value_sheet = (sheetname == c_text.LABEL__VALUE_STOCK)
+            col_order_ls = LayoutOutputData.col_value_order if is_value_sheet else LayoutOutputData.col_order
 
             if data_container.is_empty():
                 continue
@@ -222,7 +224,7 @@ class Writer:
                     cell.fill = PatternFill(start_color="FFFFFF", end_color="FFFFFF", fill_type="solid")
 
             # Total column length
-            tot_col_len = len(LayoutOutputData.col_value_order if is_value_sheet else LayoutOutputData.col_order)
+            tot_col_len = len(col_order_ls)
 
             # Apply the border to all used cells
             for row in ws.iter_rows(min_row=1, max_row=len(data_container.master_ticker_ls) + 1, min_col=1, max_col=tot_col_len):
@@ -242,7 +244,7 @@ class Writer:
             # Set column default width
             for c in range(1, tot_col_len + 1):
                 col_letter = get_column_letter(c)
-                ws.column_dimensions[col_letter].width = 7.6
+                ws.column_dimensions[col_letter].width = 9.0
 
             # Specific width
             ws.column_dimensions[get_column_letter(1)].width = 20
@@ -252,7 +254,24 @@ class Writer:
             for dt_col in dt_col_ls:
                 ws.column_dimensions[get_column_letter(sheet_df.columns.get_loc(dt_col) + 1)].width = 11.5
             
-            ws.row_dimensions[1].height = 57.5
+            ws.row_dimensions[1].height = 80.0
+
+            # Alignment
+            center_align_ls = [sheet_df.columns.get_loc(c) for c in dt_col_ls + [c_text.CCY]]
+            for col in center_align_ls:
+                col += 1
+                for row in range(2, len(data_container.master_ticker_ls) + 2):
+                    cell = ws.cell(row=row, column=col)
+                    cell.alignment = Alignment(wrap_text=True, horizontal='center')
+            
+            right_align_ls = LayoutOutputDataFormat.txt_col_ls.copy()
+            right_align_ls = list(filter(lambda x: x in col_order_ls, right_align_ls))
+            right_align_ls = [sheet_df.columns.get_loc(c) for c in right_align_ls]
+            for col in right_align_ls:
+                col += 1
+                for row in range(2, len(data_container.master_ticker_ls) + 2):
+                    cell = ws.cell(row=row, column=col)
+                    cell.alignment = Alignment(wrap_text=True, horizontal='right')
             
             # Copy and paste the header and rename it
             out_header_ls = []
@@ -336,7 +355,7 @@ class Writer:
                 to_insert_row += tot_len + 1
 
             # Insert the conditional formatting table
-            to_insert_row += 1
+            to_insert_row += 2
             cond_cell_header = ws.cell(row=to_insert_row, column=1)
             cond_cell_header.value = c_text.COND
             cond_cell_header.fill = PatternFill(start_color='DAEEF3', end_color='DAEEF3', fill_type="solid")
