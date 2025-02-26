@@ -441,8 +441,8 @@ class FinancialAnalysis:
                 rev_prev_fy = self._get_latest_value(ticker, ANN_INCOME, c_api_text.FMP_REV, idx=0)
 
                 net_debt_to_equity = self._safe_div(net_debt_prev_q, tot_equity_prev_q)
-                receivable_turnover = self._safe_div(rec_prev_fy, rev_prev_fy)
-                inventory_turnover = self._safe_div(inv_prev_fy, rev_prev_fy)
+                receivable_turnover = self._safe_div(rec_prev_fy, rev_prev_fy) # TODO Change to TTM
+                inventory_turnover = self._safe_div(inv_prev_fy, rev_prev_fy) # TODO Change to  TTM
 
                 metrics = {
                     c_text.NDTE_LAST_Q: net_debt_to_equity,
