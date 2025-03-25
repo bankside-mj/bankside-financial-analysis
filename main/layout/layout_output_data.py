@@ -5,7 +5,7 @@ class LayoutOutputData:
     # (A) Basic Info
     col_basic_info = [
         c_text.COMPANY_NAME, c_text.TICKER, c_text.SECTOR, c_text.CCY, c_text.CUR_PRICE, c_text.MKT_CAP, c_text.BETA,
-        c_text.MIND_SHARE, c_text.MKT_SHARE,
+        # c_text.MIND_SHARE, c_text.MKT_SHARE,
     ]
 
     # (B) Investment Metrics
@@ -21,7 +21,7 @@ class LayoutOutputData:
 
         c_text.PEG_R_TTM,
         c_text.REV_CAGR_1Y, c_text.REV_CAGR_3Y, c_text.REV_CAGR_5Y, c_text.REV_CAGR_10Y,
-        c_text.ROE_TTM, c_text.ROE_FY3, c_text.PEG_R_FY1, c_text.PEG_R_FY3,
+        # c_text.ROE_TTM, c_text.ROE_FY3, c_text.PEG_R_FY1, c_text.PEG_R_FY3,
     ]
 
     col_growth_theme_ls = [
@@ -34,10 +34,9 @@ class LayoutOutputData:
         c_text.DIV_YIELD_TTM, c_text.NEXT_EARN_DATE, c_text.NEXT_EARN_EST_EPS, c_text.NEXT_EARN_EST_REV,
         c_text.BEAT_EST, c_text.BEAT_EST_LAST_UPDATE,
 
-        c_text.PEG_R_TTM, c_text.ROE_TTM, c_text.ROE_FY3, c_text.PEG_R_FY1, c_text.PEG_R_FY3,
-
-        c_text.TOT_REV_LAST_Q, c_text.GP_LAST_Q,
-        c_text.CAPEX_LAST_Y, c_text.NI_TTM, c_text.NI_LAST_Y, c_text.NI_LAST_Q,
+        c_text.PEG_R_TTM, 
+        # c_text.ROE_TTM, c_text.ROE_FY3, c_text.PEG_R_FY1, c_text.PEG_R_FY3, c_text.TOT_REV_LAST_Q, c_text.GP_LAST_Q,
+        # c_text.CAPEX_LAST_Y, c_text.NI_TTM, c_text.NI_LAST_Y, c_text.NI_LAST_Q,
         c_text.EPS_TTM, c_text.LAST_EX_DIV_DT, c_text.LAST_DIV_VAL, c_text.PR_TTM, 
     ]
 
