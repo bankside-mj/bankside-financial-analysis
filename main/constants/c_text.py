@@ -8,7 +8,7 @@ ERR__TICKER_NOT_FOUND = 'The following ticker are not found'
 
 LABEL__CN = 'China'
 LABEL__US = 'United States'
-LABEL__JP = 'Japan'
+LABEL__JP = 'Others'
 
 LABEL__VALUE_STOCK = 'Value Stock'
 LABEL__GROWTH_STOCK = 'Growth Stock'
